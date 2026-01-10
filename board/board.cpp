@@ -27,7 +27,7 @@ void Board::init() {
     }
 }
 
-PieceType Board::at(int r, int c) const {
+PieceType Board::at(const int r, const int c) const {
     return board[r][c];
 }
 

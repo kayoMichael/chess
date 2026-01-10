@@ -1,8 +1,10 @@
-//
-// Created by Michael Li on 2026-01-10.
-//
+#pragma once
+#include <vector>
+#include "board/board.h"
+#include "move/move.h"
 
-#ifndef CHESS_PIECE_H
-#define CHESS_PIECE_H
-
-#endif //CHESS_PIECE_H
+class Piece {
+public:
+    virtual ~Piece() = default;
+    virtual void generateMoves(Board& board, int row, int col, std::vector<Move>& moves) const = 0;
+};
