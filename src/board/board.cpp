@@ -2,7 +2,8 @@
 #include <cassert>
 
 #include "board.h"
-#import "move/move.h"
+#import "move.h"
+#import "movement_const.h"
 
 Board::Board() : board{} {
     init();
@@ -56,13 +57,13 @@ bool Board::validate(const Move& move) {
 
     // Hypothetically make the move and check
     Board hypothetical = *this;
-    hypothetical.makeMove(move);
+    hypothetical.makeMove(move, true);
     Square kingPosition = {};
     bool found = false;
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             Piece piece = hypothetical.at(r, c);
-            if (piece.color != hypothetical.side && piece.kind == PieceKind::King) {
+            if (piece.color == hypothetical.side && piece.kind == PieceKind::King) {
                 kingPosition.r = r;
                 kingPosition.c = c;
                 found = true;
@@ -81,12 +82,7 @@ bool Board::validate(const Move& move) {
     // King Attack
     if (hypothetical.kingAttacked(kingPosition)) return false;
 
-    // Queen, Bishop, Rook Attack
-    static constexpr std::pair<int, int> dDirection[8] = {
-        {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1},
-        {1, -1}, {-1, 1}, {-1, -1}
-    };
-    for (auto [r, c]: dDirection) {
+    for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
         if (hypothetical.directionalAttacked(kingPosition, r, c)) return false;
     }
 
@@ -94,14 +90,14 @@ bool Board::validate(const Move& move) {
 }
 
 bool Board::pawnAttacked(Square piece) const {
-    int dir = (side == Color::White) ? -1 : 1;
+    int dir = (side == Color::White) ? 1 : -1;
     for (int dc : {-1, 1}) {
         const int nr = piece.r + dir;
         const int nc = piece.c + dc;
         if (0 > nr || nr >= 8 || 0 > nc || nc >= 8) continue;
 
         Piece p = at(nr, nc);
-        if (p.color == side && p.kind == PieceKind::Pawn)
+        if (p.color != side && p.kind == PieceKind::Pawn)
             return true;
     }
     return false;
@@ -119,7 +115,7 @@ bool Board::directionalAttacked(Square piece, int dr, int dc) const{
             c += dc;
             continue;
         }
-        if (p.color == side) {
+        if (p.color != side) {
             if ((p.kind == PieceKind::Rook || p.kind == PieceKind::Queen) &&
                 (dr == 0 || dc == 0)) {
                 return true;
@@ -138,17 +134,12 @@ bool Board::directionalAttacked(Square piece, int dr, int dc) const{
 }
 
 bool Board::knightAttacked(Square piece) const {
-    static constexpr std::pair<int, int> dKnight[8] = {
-        {-2,  1}, {-1,  2}, { 1,  2}, { 2,  1},
-        { 2, -1}, { 1, -2}, {-1, -2}, {-2, -1}
-    };
-
-    for (auto [dr, dc] : dKnight) {
+    for (auto [dr, dc] : MovementConst::KNIGHT_LATTICE_DISPLACEMENTS) {
         int nr = dr + piece.r;
         int nc = dc + piece.c;
         if (0 <= nr && nr < 8 && 0 <= nc && nc < 8) {
             Piece potentialKnight = at(nr, nc);
-            if (side == potentialKnight.color && potentialKnight.kind == PieceKind::Knight) {
+            if (side != potentialKnight.color && potentialKnight.kind == PieceKind::Knight) {
                 return true;
             }
         }
@@ -157,11 +148,7 @@ bool Board::knightAttacked(Square piece) const {
 }
 
 bool Board::kingAttacked(Square piece) const {
-    static constexpr std::pair<int, int> dDirection[8] = {
-        {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1},
-        {1, -1}, {-1, 1}, {-1, -1}
-    };
-    for (auto [r, c]: dDirection) {
+    for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
         int nr = piece.r + r;
         int nc = piece.c + c;
 
@@ -175,12 +162,14 @@ bool Board::kingAttacked(Square piece) const {
     return false;
 }
 
-void Board::makeMove(const Move& move) {
+void Board::makeMove(const Move& move, bool hypothetical) {
     Piece current_piece = board[move.current.r][move.current.c];
     board[move.current.r][move.current.c] = Piece(PieceKind::None, Color::None);
     board[move.destination.r][move.destination.c] = current_piece;
 
-    side = (side == Color::White) ? Color::Black : Color::White;
+    if (!hypothetical) {
+        side = (side == Color::White) ? Color::Black : Color::White;
+    }
 }
 
 void Board::print() const {

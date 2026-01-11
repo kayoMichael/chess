@@ -3,11 +3,8 @@ project(chess)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(include)
+include_directories(src)
 
-add_executable(chess main.cpp
-        piece/piece.h
-        board/board.h
-        board/board.cpp
-        move/move.h
-)
+file(GLOB_RECURSE SOURCES "src/*.cpp")
+add_executable(chess ${SOURCES})

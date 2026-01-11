@@ -1,5 +1,5 @@
 #pragma once
-#import "move/move.h"
+#import "move.h"
 
 enum class Color { None, White, Black };
 enum class PieceKind { None, Pawn, Knight, Bishop, Rook, Queen, King };
@@ -14,7 +14,7 @@ public:
     Board();
     void init();
     void print() const;
-    void makeMove(const Move& move);
+    void makeMove(const Move& move, bool hypothetical);
     bool validate(const Move& move);
     [[nodiscard]] Piece at(int r, int c) const;
 

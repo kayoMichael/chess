@@ -1,10 +1,10 @@
 #pragma once
 #include <vector>
 #include "board/board.h"
-#include "move/move.h"
+#include "move.h"
 
-class Piece {
+class ChessPiece {
 public:
-    virtual ~Piece() = default;
+    virtual ~ChessPiece() = default;
     virtual void generateMoves(Board& board, int row, int col, std::vector<Move>& moves) const = 0;
 };
