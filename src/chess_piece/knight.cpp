@@ -11,9 +11,8 @@ public:
             int destRow = row + c;
             int destCol = col + r;
 
-            if (0 <= destRow && destRow < 8 && 0 <= destCol && destCol < 8) {
+            if (0 <= destRow && destRow < 8 && 0 <= destCol && destCol < 8)
                 moves.emplace_back(Square(row, col), Square(destRow, destCol));
-            }
         }
     }
 };
