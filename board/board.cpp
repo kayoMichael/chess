@@ -78,6 +78,9 @@ bool Board::validate(const Move& move) {
     // Knight Attack
     if (hypothetical.knightAttacked(kingPosition)) return false;
 
+    // King Attack
+    if (hypothetical.kingAttacked(kingPosition)) return false;
+
     // Queen, Bishop, Rook Attack
     static constexpr std::pair<int, int> dDirection[8] = {
         {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1},
@@ -146,6 +149,25 @@ bool Board::knightAttacked(Square piece) const {
         if (0 <= nr && nr < 8 && 0 <= nc && nc < 8) {
             Piece potentialKnight = at(nr, nc);
             if (side == potentialKnight.color && potentialKnight.kind == PieceKind::Knight) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Board::kingAttacked(Square piece) const {
+    static constexpr std::pair<int, int> dDirection[8] = {
+        {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1},
+        {1, -1}, {-1, 1}, {-1, -1}
+    };
+    for (auto [r, c]: dDirection) {
+        int nr = piece.r + r;
+        int nc = piece.c + c;
+
+        if (0 <= nr && nr < 8 && 0 <= nc && nc < 8) {
+            Piece p = at(nr, nc);
+            if (p.kind == PieceKind::King) {
                 return true;
             }
         }
