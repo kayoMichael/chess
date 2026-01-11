@@ -22,4 +22,6 @@ private:
     Piece board[8][8];
     Color side = Color::White;
     [[nodiscard]] bool directionalAttacked(Square piece, int dr, int dc) const;
+    [[nodiscard]] bool knightAttacked(Square piece) const;
+    [[nodiscard]] bool pawnAttacked(Square piece) const;
 };

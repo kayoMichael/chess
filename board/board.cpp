@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 
 #include "board.h"
 #import "move/move.h"
@@ -6,7 +7,6 @@
 Board::Board() : board{} {
     init();
 }
-
 
 void Board::init() {
     for (auto& row : board)
@@ -35,36 +35,73 @@ void Board::init() {
 }
 
 Piece Board::at(const int r, const int c) const {
+    assert(r >= 0 && r < 8 && c >= 0 && c < 8);
     return board[r][c];
 }
 
 bool Board::validate(const Move& move) {
+    // Check if the square is already occupied by an ally
+    Piece dest = at(move.destination.r, move.destination.c);
+    if (dest.color == side)
+        return false;
+
+    Piece src = at(move.current.r, move.current.c);
+    // Cannot move empty square
+    if (src.kind == PieceKind::None)
+        return false;
+
+    // Cannot move opponent’s piece
+    if (src.color != side)
+        return false;
+
+    // Hypothetically make the move and check
     Board hypothetical = *this;
     hypothetical.makeMove(move);
     Square kingPosition = {};
+    bool found = false;
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             Piece piece = hypothetical.at(r, c);
             if (piece.color != hypothetical.side && piece.kind == PieceKind::King) {
                 kingPosition.r = r;
                 kingPosition.c = c;
+                found = true;
                 break;
             }
         }
+        if (found) break;
     }
 
-    // Top Check
-    int curr_row = kingPosition.r + 1;
-    int curr_col = kingPosition.c;
+    // Pawn Attack
+    if (hypothetical.pawnAttacked(kingPosition)) return false;
 
-    bool longRange =  hypothetical.directionalAttacked(kingPosition, 1, 0) || hypothetical.directionalAttacked(kingPosition, -1, 0) ||
-        hypothetical.directionalAttacked(kingPosition, 0, 1) || hypothetical.directionalAttacked(kingPosition, 0, -1) ||
-            hypothetical.directionalAttacked(kingPosition, 1, 1) || hypothetical.directionalAttacked(kingPosition, 1, -1) ||
-                hypothetical.directionalAttacked(kingPosition, -1, 1) || hypothetical.directionalAttacked(kingPosition, -1, -1);
+    // Knight Attack
+    if (hypothetical.knightAttacked(kingPosition)) return false;
 
-    if (longRange) return false;
+    // Queen, Bishop, Rook Attack
+    static constexpr std::pair<int, int> dDirection[8] = {
+        {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1},
+        {1, -1}, {-1, 1}, {-1, -1}
+    };
+    for (auto [r, c]: dDirection) {
+        if (hypothetical.directionalAttacked(kingPosition, r, c)) return false;
+    }
 
     return true;
+}
+
+bool Board::pawnAttacked(Square piece) const {
+    int dir = (side == Color::White) ? -1 : 1;
+    for (int dc : {-1, 1}) {
+        const int nr = piece.r + dir;
+        const int nc = piece.c + dc;
+        if (0 > nr || nr >= 8 || 0 > nc || nc >= 8) continue;
+
+        Piece p = at(nr, nc);
+        if (p.color == side && p.kind == PieceKind::Pawn)
+            return true;
+    }
+    return false;
 }
 
 bool Board::directionalAttacked(Square piece, int dr, int dc) const{
@@ -94,6 +131,25 @@ bool Board::directionalAttacked(Square piece, int dr, int dc) const{
         return false; // Our own piece blocks the potential attacker
     }
 
+    return false;
+}
+
+bool Board::knightAttacked(Square piece) const {
+    static constexpr std::pair<int, int> dKnight[8] = {
+        {-2,  1}, {-1,  2}, { 1,  2}, { 2,  1},
+        { 2, -1}, { 1, -2}, {-1, -2}, {-2, -1}
+    };
+
+    for (auto [dr, dc] : dKnight) {
+        int nr = dr + piece.r;
+        int nc = dc + piece.c;
+        if (0 <= nr && nr < 8 && 0 <= nc && nc < 8) {
+            Piece potentialKnight = at(nr, nc);
+            if (side == potentialKnight.color && potentialKnight.kind == PieceKind::Knight) {
+                return true;
+            }
+        }
+    }
     return false;
 }
 
