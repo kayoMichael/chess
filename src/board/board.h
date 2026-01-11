@@ -16,6 +16,7 @@ public:
     void print() const;
     void makeMove(const Move& move, bool hypothetical);
     bool validate(const Move& move);
+    [[nodiscard]] Color getColor() const;
     [[nodiscard]] Piece at(int r, int c) const;
 
 private:
