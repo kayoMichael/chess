@@ -90,7 +90,7 @@ bool Board::validate(const Move& move) {
 }
 
 bool Board::pawnAttacked(Square piece) const {
-    int dir = (side == Color::White) ? 1 : -1;
+    int dir = (side == Color::White) ? -1 : 1;
     for (int dc : {-1, 1}) {
         const int nr = piece.r + dir;
         const int nc = piece.c + dc;

@@ -2,6 +2,13 @@
 #include <utility>
 
 namespace MovementConst {
+    // Pawn: restricted Minkowski sum of basis vectors under Z₂
+    inline constexpr std::pair<int, int> MINKOWSKI_RESTRICTED_SUM[4] = {
+        { 1,  0 },
+        { 2,  0 },
+        { 1,  1 },
+        { 1, -1 }
+    };
 
     // Knight: (2, 1) displacement under D₄ dihedral symmetry
     inline constexpr std::pair<int, int> KNIGHT_LATTICE_DISPLACEMENTS[8] = {
@@ -15,7 +22,7 @@ namespace MovementConst {
         { 1,  1}, { 1, -1}, {-1,  1}, {-1, -1}
     };
 
-    // Rook: axis-aligned generators of the Manhatten metric
+    // Rook: axis-aligned generators of the Manhattan metric
     inline constexpr std::pair<int, int> MANHATTAN_BASIS_VECTORS[4] = {
         { 1,  0}, {-1,  0}, { 0,  1}, { 0, -1}
     };

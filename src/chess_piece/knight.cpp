@@ -1,3 +1,4 @@
+#pragma once
 #include "chess_piece.h"
 #include "board/board.h"
 #include "movement_const.h"
@@ -7,8 +8,12 @@ class Knight : public ChessPiece {
 public:
     void generateMoves(Board &board, int row, int col, std::vector<Move> &moves) const override {
         for (const auto [r, c] : MovementConst::KNIGHT_LATTICE_DISPLACEMENTS) {
-            Move hypotheticalMove = Move(Square(row, col), Square(row + r, row + c));
-            if (board.validate(hypotheticalMove)) moves.push_back(hypotheticalMove);
+            int destRow = row + c;
+            int destCol = col + r;
+
+            if (0 <= destRow && destRow < 8 && 0 <= destCol && destCol < 8) {
+                moves.emplace_back(Square(row, col), Square(destRow, destCol));
+            }
         }
     }
 };
