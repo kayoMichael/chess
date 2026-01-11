@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include "board/board.h"
-#include "move.h"
+#include "../../include/move.h"
 
 class ChessPiece {
 public:

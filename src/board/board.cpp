@@ -40,6 +40,10 @@ Piece Board::at(const int r, const int c) const {
     return board[r][c];
 }
 
+Color Board::getColor() const {
+    return side;
+}
+
 bool Board::validate(const Move& move) {
     // Check if the square is already occupied by an ally
     Piece dest = at(move.destination.r, move.destination.c);
