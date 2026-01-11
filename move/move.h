@@ -1,5 +1,11 @@
 #pragma once
+
+struct Square {
+    int r;
+    int c;
+};
+
 struct Move {
-    int fromRow, fromCol;
-    int toRow, toCol;
+    Square current;
+    Square destination;
 };

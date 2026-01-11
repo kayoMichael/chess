@@ -10,4 +10,4 @@ add_executable(chess main.cpp
         board/board.h
         board/board.cpp
         move/move.h
-        piece/pawn.cpp)
+)

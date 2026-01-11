@@ -1,9 +1,12 @@
 #pragma once
+#import "move/move.h"
 
-enum class PieceType {
-    EMPTY,
-    W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-    B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
+enum class Color { None, White, Black };
+enum class PieceKind { None, Pawn, Knight, Bishop, Rook, Queen, King };
+
+struct Piece {
+    PieceKind kind;
+    Color color;
 };
 
 class Board {
@@ -11,8 +14,12 @@ public:
     Board();
     void init();
     void print() const;
-    [[nodiscard]] PieceType at(int r, int c) const;
+    void makeMove(const Move& move);
+    bool validate(const Move& move);
+    [[nodiscard]] Piece at(int r, int c) const;
 
 private:
-    PieceType board[8][8];
+    Piece board[8][8];
+    Color side = Color::White;
+    [[nodiscard]] bool directionalAttacked(Square piece, int dr, int dc) const;
 };
