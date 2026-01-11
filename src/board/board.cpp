@@ -2,8 +2,8 @@
 #include <cassert>
 
 #include "board.h"
-#import "move.h"
-#import "movement_const.h"
+#include "move.h"
+#include "movement_const.h"
 
 Board::Board() : board{} {
     init();

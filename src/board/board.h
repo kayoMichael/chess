@@ -1,5 +1,5 @@
 #pragma once
-#import "move.h"
+#include "move.h"
 
 enum class Color { None, White, Black };
 enum class PieceKind { None, Pawn, Knight, Bishop, Rook, Queen, King };
