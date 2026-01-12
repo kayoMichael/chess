@@ -16,8 +16,8 @@ struct Move {
     PieceKind promotion = PieceKind::None;
 
     Move() = default;
-    Move(const Square c, const Square d)
-    : current(c), destination(d) {}
+    Move(const Square c, const Square d, const PieceKind p = PieceKind::None)
+    : current(c), destination(d), promotion(p) {}
 };
 
 struct MoveUndo {

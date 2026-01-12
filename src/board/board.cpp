@@ -203,6 +203,11 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
     board[move.current.r][move.current.c] = Piece(PieceKind::None, Color::None);
     board[move.destination.r][move.destination.c] = current_piece;
 
+    // Promotion
+    if (current_piece.kind == PieceKind::Pawn && (move.destination.r == 7 || move.destination.r == 0)) {
+        board[move.destination.r][move.destination.c] = Piece(move.promotion, current_piece.color);
+    }
+
     if (!hypothetical) {
         side = (side == Color::White) ? Color::Black : Color::White;
     }
