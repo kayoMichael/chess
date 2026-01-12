@@ -22,4 +22,7 @@ constexpr int INF = 1'000'000'000;
 struct Piece {
     PieceKind kind;
     Color color;
+
+    Piece() = default;
+    Piece(PieceKind k, Color c) : kind(k), color(c) {}
 };
