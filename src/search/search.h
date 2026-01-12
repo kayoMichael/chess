@@ -1,7 +1,6 @@
 #pragma once
 #include "board/board.h"
 #include "move.h"
-#include <vector>
 
 class Search {
 public:

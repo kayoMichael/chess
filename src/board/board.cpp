@@ -168,14 +168,17 @@ bool Board::kingAttacked(Square piece) const {
 
 MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
     MoveUndo undo;
+    if (!hypothetical) {
+        undo.move = move;
+        undo.captured = at(move.destination.r, move.destination.c);
+        undo.movedPiece = at(move.current.r, move.current.c);
+    }
+
     Piece current_piece = board[move.current.r][move.current.c];
     board[move.current.r][move.current.c] = Piece(PieceKind::None, Color::None);
     board[move.destination.r][move.destination.c] = current_piece;
 
     if (!hypothetical) {
-        undo.move = move;
-        undo.captured = at(move.destination.r, move.destination.c);
-        undo.movedPiece = at(move.current.r, move.current.c);
         side = (side == Color::White) ? Color::Black : Color::White;
     }
     return undo;

@@ -2,6 +2,9 @@
 #include "move.h"
 #include "search.h"
 #include "generator/generator.h"
+#include "piece_type.h"
+#include <climits>
+#include <algorithm>
 
 Move Search::findBestMove(Board& board, int depth) {
     int alpha = -INT_MAX;
@@ -60,7 +63,7 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta) {
     }
     int minValue = INT_MAX;
     for (auto& move : moves) {
-        MoveUndo undo = board.makeMove(move, true);
+        MoveUndo undo = board.makeMove(move,false);
         int score = alphaBeta(board, depth - 1, alpha, beta);
         board.undoMove(undo);
         minValue = std::min(minValue, score);
@@ -75,7 +78,8 @@ int Search::evaluate(const Board &board) {
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             const Piece p = board.at(r, c);
-            p.color == Color::White ? score += pieceValue(p.kind) : score -= pieceValue(p.kind);
+            if (p.color == Color::White) score += pieceValue(p.kind);
+            else score -= pieceValue(p.kind);
         }
     }
     return score;
