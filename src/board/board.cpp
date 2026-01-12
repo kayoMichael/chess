@@ -93,6 +93,30 @@ bool Board::validate(const Move& move) {
     return true;
 }
 
+// After makeMove(), side has flipped to the next player.
+// So we check if the previous player's king (now != side) is in check.
+bool Board::isChecked() const {
+    Square kingPosition = {};
+    bool found = false;
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            Piece piece = at(r, c);
+            if (piece.color != side && piece.kind == PieceKind::King) {
+                kingPosition.r = r;
+                kingPosition.c = c;
+                found = true;
+                break;
+            }
+        }
+        if (found) break;
+    }
+    if (knightAttacked(kingPosition) || pawnAttacked(kingPosition)) return true;
+    for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
+        if (directionalAttacked(kingPosition, r, c)) return true;
+    }
+    return false;
+}
+
 bool Board::pawnAttacked(Square piece) const {
     int dir = (side == Color::White) ? -1 : 1;
     for (int dc : {-1, 1}) {

@@ -10,6 +10,7 @@ public:
     MoveUndo makeMove(const Move& move, bool hypothetical);
     void undoMove(const MoveUndo& undo);
     bool validate(const Move& move);
+    [[nodiscard]] bool isChecked() const;
     [[nodiscard]] Color getColor() const;
     [[nodiscard]] Piece at(int r, int c) const;
 

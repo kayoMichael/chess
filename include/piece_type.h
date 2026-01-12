@@ -16,6 +16,9 @@ constexpr int pieceValue(PieceKind kind) {
     }
 }
 
+constexpr int MATE = 1000000;
+constexpr int INF = 1'000'000'000;
+
 struct Piece {
     PieceKind kind;
     Color color;
