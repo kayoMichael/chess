@@ -1,20 +1,14 @@
 #pragma once
 #include "move.h"
-
-enum class Color { None, White, Black };
-enum class PieceKind { None, Pawn, Knight, Bishop, Rook, Queen, King };
-
-struct Piece {
-    PieceKind kind;
-    Color color;
-};
+#include "piece_type.h"
 
 class Board {
 public:
     Board();
     void init();
     void print() const;
-    void makeMove(const Move& move, bool hypothetical);
+    MoveUndo makeMove(const Move& move, bool hypothetical);
+    void undoMove(const MoveUndo& undo);
     bool validate(const Move& move);
     [[nodiscard]] Color getColor() const;
     [[nodiscard]] Piece at(int r, int c) const;

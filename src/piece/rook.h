@@ -17,6 +17,9 @@ public:
                 moves.emplace_back(Square(row, col), Square(r, c));
 
                 if (kind != PieceKind::None) break;
+
+                r += dr;
+                c += dc;
             }
         }
     }
