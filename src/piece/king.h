@@ -9,9 +9,11 @@ public:
         for (const auto [dr, dc] : MovementConst::CHEBYSHEV_DIRECTIONS) {
             const int r = row + dr;
             const int c = col + dc;
-            const auto [kind, color] = board.at(r, c);
-            if (color == king.color) continue;
-            moves.emplace_back(Square(row, col), Square(r, c));
+            if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                const auto [kind, color] = board.at(r, c);
+                if (color == king.color) continue;
+                moves.emplace_back(Square(row, col), Square(r, c));
+            }
         }
     }
 };
