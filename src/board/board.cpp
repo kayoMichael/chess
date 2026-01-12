@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <string>
 
 #include "board.h"
 #include "move.h"
@@ -93,6 +94,30 @@ bool Board::validate(const Move& move) {
     return true;
 }
 
+// After makeMove(), side has flipped to the next player.
+// So we check if the previous player's king (now != side) is in check.
+bool Board::isChecked() const {
+    Square kingPosition = {};
+    bool found = false;
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            Piece piece = at(r, c);
+            if (piece.color != side && piece.kind == PieceKind::King) {
+                kingPosition.r = r;
+                kingPosition.c = c;
+                found = true;
+                break;
+            }
+        }
+        if (found) break;
+    }
+    if (knightAttacked(kingPosition) || pawnAttacked(kingPosition)) return true;
+    for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
+        if (directionalAttacked(kingPosition, r, c)) return true;
+    }
+    return false;
+}
+
 bool Board::pawnAttacked(Square piece) const {
     int dir = (side == Color::White) ? -1 : 1;
     for (int dc : {-1, 1}) {
@@ -166,7 +191,14 @@ bool Board::kingAttacked(Square piece) const {
     return false;
 }
 
-void Board::makeMove(const Move& move, bool hypothetical) {
+MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
+    MoveUndo undo;
+    if (!hypothetical) {
+        undo.move = move;
+        undo.captured = at(move.destination.r, move.destination.c);
+        undo.movedPiece = at(move.current.r, move.current.c);
+    }
+
     Piece current_piece = board[move.current.r][move.current.c];
     board[move.current.r][move.current.c] = Piece(PieceKind::None, Color::None);
     board[move.destination.r][move.destination.c] = current_piece;
@@ -174,6 +206,13 @@ void Board::makeMove(const Move& move, bool hypothetical) {
     if (!hypothetical) {
         side = (side == Color::White) ? Color::Black : Color::White;
     }
+    return undo;
+}
+
+void Board::undoMove(const MoveUndo &undo) {
+    board[undo.move.current.r][undo.move.current.c] = board[undo.move.destination.r][undo.move.destination.c];
+    board[undo.move.destination.r][undo.move.destination.c] = undo.captured;
+    side = (side == Color::White) ? Color::Black : Color::White;
 }
 
 void Board::print() const {
