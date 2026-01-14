@@ -16,12 +16,19 @@ struct Move {
     PieceKind promotion = PieceKind::None;
 
     Move() = default;
-    Move(const Square c, const Square d, const PieceKind p = PieceKind::None)
-    : current(c), destination(d), promotion(p) {}
+    Move(const Square c, const Square d, const PieceKind p = PieceKind::None, MoveType t = MoveType::Normal)
+    : current(c), destination(d), promotion(p), type(t) {}
 };
 
 struct MoveUndo {
     Move move;
     Piece captured{};
     Piece movedPiece{};
+
+    bool whiteKingMoved{};
+    bool blackKingMoved{};
+    bool whiteRookKingsideMoved{};
+    bool whiteRookQueensideMoved{};
+    bool blackRookKingsideMoved{};
+    bool blackRookQueensideMoved{};
 };

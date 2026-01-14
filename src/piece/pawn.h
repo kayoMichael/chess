@@ -1,8 +1,6 @@
 #pragma once
 #include "chess_piece.h"
 #include "movement_const.h"
-#include "pieces.h"
-#include "bishop.h"
 
 class Pawn : public ChessPiece {
 public:

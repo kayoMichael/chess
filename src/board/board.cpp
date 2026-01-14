@@ -118,6 +118,23 @@ bool Board::isChecked() const {
     return false;
 }
 
+bool Board::squareAttacked(const Square &square) const {
+    // Pawn Attack
+    if (pawnAttacked(square)) return false;
+
+    // Knight Attack
+    if (knightAttacked(square)) return false;
+
+    // King Attack
+    if (kingAttacked(square)) return false;
+
+    for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
+        if (directionalAttacked(square, r, c)) return false;
+    }
+
+    return true;
+}
+
 bool Board::pawnAttacked(Square piece) const {
     int dir = (side == Color::White) ? -1 : 1;
     for (int dc : {-1, 1}) {
@@ -198,7 +215,6 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
         undo.captured = at(move.destination.r, move.destination.c);
         undo.movedPiece = at(move.current.r, move.current.c);
     }
-
     Piece current_piece = board[move.current.r][move.current.c];
     board[move.current.r][move.current.c] = Piece(PieceKind::None, Color::None);
     board[move.destination.r][move.destination.c] = current_piece;
@@ -206,6 +222,26 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
     // Promotion
     if (current_piece.kind == PieceKind::Pawn && (move.destination.r == 7 || move.destination.r == 0)) {
         board[move.destination.r][move.destination.c] = Piece(move.promotion, current_piece.color);
+    }
+
+    undo.whiteKingMoved = whiteKingMoved;
+    undo.whiteRookKingsideMoved = whiteRookKingsideMoved;
+    undo.whiteRookQueensideMoved = whiteRookQueensideMoved;
+    undo.blackKingMoved = blackKingMoved;
+    undo.blackRookKingsideMoved = blackRookKingsideMoved;
+    undo.blackRookQueensideMoved = blackRookQueensideMoved;
+
+    // Moving King or Rook loses eligibility to Castle
+    if (current_piece.color == Color::White) {
+        if (current_piece.kind == PieceKind::Rook) {
+            if (move.current.r == 7 && move.current.c == 7 && !whiteRookKingsideMoved) whiteRookKingsideMoved = true;
+            if (move.current.r == 7 && move.current.c == 0 && !whiteRookQueensideMoved) whiteRookQueensideMoved = true;
+        } else if (current_piece.kind == PieceKind::King && !whiteKingMoved) whiteKingMoved = true;
+    } else {
+        if (current_piece.kind == PieceKind::Rook) {
+            if (move.current.r == 0 && move.current.c == 0 && !blackRookQueensideMoved) blackRookQueensideMoved= true;
+            if (move.current.r == 0 && move.current.c == 7 && !blackRookKingsideMoved) blackRookKingsideMoved= true;
+        } else if (current_piece.kind == PieceKind::King && !blackKingMoved) blackKingMoved = true;
     }
 
     if (!hypothetical) {
@@ -217,6 +253,13 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
 void Board::undoMove(const MoveUndo &undo) {
     board[undo.move.current.r][undo.move.current.c] = board[undo.move.destination.r][undo.move.destination.c];
     board[undo.move.destination.r][undo.move.destination.c] = undo.captured;
+
+    whiteKingMoved = undo.whiteKingMoved;
+    whiteRookKingsideMoved = undo.whiteRookKingsideMoved;
+    whiteRookQueensideMoved = undo.whiteRookQueensideMoved;
+    blackKingMoved = undo.blackKingMoved;
+    blackRookKingsideMoved = undo.blackRookKingsideMoved;
+    blackRookQueensideMoved = undo.blackRookQueensideMoved;
     side = (side == Color::White) ? Color::Black : Color::White;
 }
 

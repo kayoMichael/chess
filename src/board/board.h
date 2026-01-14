@@ -7,9 +7,16 @@ public:
     Board();
     void init();
     void print() const;
+    bool whiteKingMoved = false;
+    bool blackKingMoved = false;
+    bool whiteRookKingsideMoved = false;
+    bool whiteRookQueensideMoved = false;
+    bool blackRookKingsideMoved = false;
+    bool blackRookQueensideMoved = false;
     MoveUndo makeMove(const Move& move, bool hypothetical);
     void undoMove(const MoveUndo& undo);
     bool validate(const Move& move);
+    bool squareAttacked(const Square& square) const;
     [[nodiscard]] bool isChecked() const;
     [[nodiscard]] Color getColor() const;
     [[nodiscard]] Piece at(int r, int c) const;
@@ -17,6 +24,8 @@ public:
 private:
     Piece board[8][8];
     Color side = Color::White;
+    bool canCastleKingside[2]{};
+    bool canCastleQueenside[2]{};
     [[nodiscard]] bool directionalAttacked(Square piece, int dr, int dc) const;
     [[nodiscard]] bool knightAttacked(Square piece) const;
     [[nodiscard]] bool pawnAttacked(Square piece) const;
