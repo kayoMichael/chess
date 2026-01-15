@@ -24,7 +24,7 @@ public:
 
             if ((pawn.color == Color::White && r == 0) || (pawn.color == Color::Black && r == 7)) {
                 for (PieceKind promo : {PieceKind::Queen, PieceKind::Rook, PieceKind::Bishop, PieceKind::Knight}) {
-                    moves.emplace_back(Square(row, col), Square(r, c), promo);
+                    moves.emplace_back(Square(row, col), Square(r, c), MoveType::Promotion, promo);
                 }
             }
         }

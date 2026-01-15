@@ -16,68 +16,31 @@ public:
             }
         }
 
-        // castling check
+        // castling
         if (king.color == Color::White && !board.whiteKingMoved && !board.isChecked()) {
-            if (!board.whiteRookKingsideMoved) {
-                bool canCastle = true;
-
-                for (int c = col + 1; c < 7; c++) {  // squares between king and rook
-                    if (board.at(7, c).kind != PieceKind::None) {
-                        canCastle = false;
-                        break;
-                    }
-                }
-
-                if (canCastle && !board.squareAttacked(Square(7, 5)) && !board.squareAttacked(Square(7, 6))) {
-                    moves.emplace_back(Square(-10, -10), Square(-10, -10));  // kingside castle
-                }
-
-            }
-            if (!board.whiteRookQueensideMoved) {
-                bool canCastle = true;
-
-                for (int c = col - 1; c > 0; c--) {  // squares between king and rook
-                    if (board.at(7, c).kind != PieceKind::None) {
-                        canCastle = false;
-                        break;
-                    }
-                }
-                if (canCastle && !board.squareAttacked(Square(7, 3)) && !board.squareAttacked(Square(7, 2))) {
-                    moves.emplace_back(Square(10, 10), Square(10, 10)); // Symbol for Queen Side Castle
-                }
-            }
+            tryAddCastle(board, row, 7, col, 1, board.whiteRookKingsideMoved, moves);   // kingside
+            tryAddCastle(board, row, 0, col, -1, board.whiteRookQueensideMoved, moves); // queenside
         } else if (king.color == Color::Black && !board.blackKingMoved && !board.isChecked()) {
-            // Kingside
-            if (!board.blackRookKingsideMoved) {
-                bool canCastle = true;
-
-                for (int c = col + 1; c < 7; c++) {
-                    if (board.at(0, c).kind != PieceKind::None) {
-                        canCastle = false;
-                        break;
-                    }
-                }
-
-                if (canCastle && !board.squareAttacked(Square(0, 5)) && !board.squareAttacked(Square(0, 6))) {
-                    moves.emplace_back(Square(-10, -10), Square(-10, -10));
-                }
-            }
-
-            // Queenside
-            if (!board.blackRookQueensideMoved) {
-                bool canCastle = true;
-
-                for (int c = col - 1; c > 0; c--) {
-                    if (board.at(0, c).kind != PieceKind::None) {
-                        canCastle = false;
-                        break;
-                    }
-                }
-
-                if (canCastle && !board.squareAttacked(Square(0, 3)) && !board.squareAttacked(Square(0, 2))) {
-                    moves.emplace_back(Square(10, 10), Square(10, 10));
-                }
-            }
+            tryAddCastle(board, row, 7, col, 1, board.blackRookKingsideMoved, moves);   // kingside
+            tryAddCastle(board, row, 0, col, -1, board.blackRookQueensideMoved, moves); // queenside
         }
+    }
+
+private:
+    static void tryAddCastle(Board &board, int row, int rookCol, int kingCol,
+                             int dir, bool rookMoved, std::vector<Move> &moves) {
+        if (rookMoved) return;
+
+        for (int c = kingCol + dir; c != rookCol; c += dir) {
+            if (board.at(row, c).kind != PieceKind::None) return;
+        }
+
+        int dest = kingCol + 2 * dir;
+        if (board.squareAttacked(Square(row, kingCol + dir)) ||
+            board.squareAttacked(Square(row, dest))) {
+            return;
+            }
+
+        moves.emplace_back(Square(row, kingCol), Square(row, dest), MoveType::Castle);
     }
 };

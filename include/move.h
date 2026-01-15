@@ -16,7 +16,7 @@ struct Move {
     PieceKind promotion = PieceKind::None;
 
     Move() = default;
-    Move(const Square c, const Square d, const PieceKind p = PieceKind::None, MoveType t = MoveType::Normal)
+    Move(const Square c, const Square d, const MoveType t = MoveType::Normal, const PieceKind p = PieceKind::None)
     : current(c), destination(d), promotion(p), type(t) {}
 };
 

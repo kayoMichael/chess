@@ -26,6 +26,8 @@ private:
     Color side = Color::White;
     bool canCastleKingside[2]{};
     bool canCastleQueenside[2]{};
+    void movePiece(const Square& from, const Square& to);
+    void updateCastlingRights(const Piece& piece, const Move& move);
     [[nodiscard]] bool directionalAttacked(Square piece, int dr, int dc) const;
     [[nodiscard]] bool knightAttacked(Square piece) const;
     [[nodiscard]] bool pawnAttacked(Square piece) const;
