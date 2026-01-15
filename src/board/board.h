@@ -13,6 +13,7 @@ public:
     bool whiteRookQueensideMoved = false;
     bool blackRookKingsideMoved = false;
     bool blackRookQueensideMoved = false;
+    std::optional<Square> enPassantTarget = std::nullopt;
     MoveUndo makeMove(const Move& move, bool hypothetical);
     void undoMove(const MoveUndo& undo);
     bool validate(const Move& move);

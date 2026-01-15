@@ -120,19 +120,19 @@ bool Board::isChecked() const {
 
 bool Board::squareAttacked(const Square &square) const {
     // Pawn Attack
-    if (pawnAttacked(square)) return false;
+    if (pawnAttacked(square)) return true;
 
     // Knight Attack
-    if (knightAttacked(square)) return false;
+    if (knightAttacked(square)) return true;
 
     // King Attack
-    if (kingAttacked(square)) return false;
+    if (kingAttacked(square)) return true;
 
     for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
-        if (directionalAttacked(square, r, c)) return false;
+        if (directionalAttacked(square, r, c)) return true;
     }
 
-    return true;
+    return false;
 }
 
 bool Board::pawnAttacked(Square piece) const {
@@ -222,11 +222,21 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
         undo.blackKingMoved = blackKingMoved;
         undo.blackRookKingsideMoved = blackRookKingsideMoved;
         undo.blackRookQueensideMoved = blackRookQueensideMoved;
+        undo.enPassantTarget = enPassantTarget;
     }
+
+    enPassantTarget = std::nullopt;
 
     switch (move.type) {
         case MoveType::Normal:
             movePiece(move.current, move.destination);
+            if (current_piece.kind == PieceKind::Pawn) {
+                int distance = move.destination.r - move.current.r;
+                if (distance == 2 || distance == -2) {
+                    // En passant target is the square the pawn skipped over
+                    enPassantTarget = Square(move.current.r + distance / 2, move.current.c);
+                }
+            }
             break;
 
         case MoveType::Promotion:
@@ -247,6 +257,11 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
             break;
         }
 
+        case MoveType::EnPassant: {
+            board[move.current.r][move.destination.c] = Piece(PieceKind::None, Color::None);
+            break;
+        }
+
         default: break;
     }
 
@@ -259,8 +274,20 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
 }
 
 void Board::undoMove(const MoveUndo &undo) {
-    board[undo.move.current.r][undo.move.current.c] = board[undo.move.destination.r][undo.move.destination.c];
-    board[undo.move.destination.r][undo.move.destination.c] = undo.captured;
+    switch (undo.move.type) {
+        case MoveType::EnPassant:
+            // Restore moving pawn
+            board[undo.move.current.r][undo.move.current.c] = undo.movedPiece;
+            board[undo.move.destination.r][undo.move.destination.c] = Piece(PieceKind::None, Color::None);
+            // Restore captured pawn (was beside the moving pawn)
+            board[undo.move.current.r][undo.move.destination.c] = undo.captured;
+            break;
+        default:
+            board[undo.move.current.r][undo.move.current.c] = board[undo.move.destination.r][undo.move.destination.c];
+            board[undo.move.destination.r][undo.move.destination.c] = undo.captured;
+            break;
+    }
+
 
     whiteKingMoved = undo.whiteKingMoved;
     whiteRookKingsideMoved = undo.whiteRookKingsideMoved;

@@ -14,18 +14,26 @@ public:
             const int r = row + dr * direction;
             const int c = (col + dc);
 
-            if (r >= 1 && r < 7 && c >= 0 && c < 8) {
+            if (r >= 0 && r < 8 && c >= 0 && c < 8) {
                 const auto [kind, color] = board.at(r, c);
-                if (dc == 0 && kind != PieceKind::None) continue; // Not capturing but there is a piece in front
-                if (dc != 0 && (pawn.color == color || color == Color::None)) continue; // Capturing but the square is occupied by ally or empty
+                if (dc == 0 && kind != PieceKind::None) continue;
+                if (dc != 0 && (pawn.color == color || color == Color::None)) continue;
 
-                moves.emplace_back(Square(row, col), Square(r, c));
-            }
-
-            if ((pawn.color == Color::White && r == 0) || (pawn.color == Color::Black && r == 7)) {
-                for (PieceKind promo : {PieceKind::Queen, PieceKind::Rook, PieceKind::Bishop, PieceKind::Knight}) {
-                    moves.emplace_back(Square(row, col), Square(r, c), MoveType::Promotion, promo);
+                if (r == 0 || r == 7) {
+                    for (PieceKind promo : {PieceKind::Queen, PieceKind::Rook, PieceKind::Bishop, PieceKind::Knight}) {
+                        moves.emplace_back(Square(row, col), Square(r, c), MoveType::Promotion, promo);
+                    }
+                } else {
+                    moves.emplace_back(Square(row, col), Square(r, c));
                 }
+            }
+        }
+
+        if (board.enPassantTarget.has_value()) {
+            Square ep = board.enPassantTarget.value();
+            // Check if we're adjacent to the en passant target
+            if (ep.r == row + direction && std::abs(ep.c - col) == 1) {
+                moves.emplace_back(Square(row, col), ep, MoveType::EnPassant);
             }
         }
     }
