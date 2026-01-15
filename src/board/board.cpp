@@ -118,6 +118,23 @@ bool Board::isChecked() const {
     return false;
 }
 
+bool Board::squareAttacked(const Square &square) const {
+    // Pawn Attack
+    if (pawnAttacked(square)) return true;
+
+    // Knight Attack
+    if (knightAttacked(square)) return true;
+
+    // King Attack
+    if (kingAttacked(square)) return true;
+
+    for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
+        if (directionalAttacked(square, r, c)) return true;
+    }
+
+    return false;
+}
+
 bool Board::pawnAttacked(Square piece) const {
     int dir = (side == Color::White) ? -1 : 1;
     for (int dc : {-1, 1}) {
@@ -193,15 +210,62 @@ bool Board::kingAttacked(Square piece) const {
 
 MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
     MoveUndo undo;
+    Piece current_piece = at(move.current.r, move.current.c);
+
     if (!hypothetical) {
         undo.move = move;
         undo.captured = at(move.destination.r, move.destination.c);
-        undo.movedPiece = at(move.current.r, move.current.c);
+        undo.movedPiece = current_piece;
+        undo.whiteKingMoved = whiteKingMoved;
+        undo.whiteRookKingsideMoved = whiteRookKingsideMoved;
+        undo.whiteRookQueensideMoved = whiteRookQueensideMoved;
+        undo.blackKingMoved = blackKingMoved;
+        undo.blackRookKingsideMoved = blackRookKingsideMoved;
+        undo.blackRookQueensideMoved = blackRookQueensideMoved;
+        undo.enPassantTarget = enPassantTarget;
     }
 
-    Piece current_piece = board[move.current.r][move.current.c];
-    board[move.current.r][move.current.c] = Piece(PieceKind::None, Color::None);
-    board[move.destination.r][move.destination.c] = current_piece;
+    enPassantTarget = std::nullopt;
+
+    switch (move.type) {
+        case MoveType::Normal:
+            movePiece(move.current, move.destination);
+            if (current_piece.kind == PieceKind::Pawn) {
+                int distance = move.destination.r - move.current.r;
+                if (distance == 2 || distance == -2) {
+                    // En passant target is the square the pawn skipped over
+                    enPassantTarget = Square(move.current.r + distance / 2, move.current.c);
+                }
+            }
+            break;
+
+        case MoveType::Promotion:
+            movePiece(move.current, move.destination);
+            board[move.destination.r][move.destination.c] = Piece(move.promotion, current_piece.color);
+            break;
+
+        case MoveType::Castle: {
+            // Move king
+            movePiece(move.current, move.destination);
+
+            // Move rook
+            int row = move.current.r;
+            bool kingside = move.destination.c > move.current.c;
+            Square rookFrom(row, kingside ? 7 : 0);
+            Square rookTo(row, kingside ? 5 : 3);
+            movePiece(rookFrom, rookTo);
+            break;
+        }
+
+        case MoveType::EnPassant: {
+            board[move.current.r][move.destination.c] = Piece(PieceKind::None, Color::None);
+            break;
+        }
+
+        default: break;
+    }
+
+    updateCastlingRights(current_piece, move);
 
     if (!hypothetical) {
         side = (side == Color::White) ? Color::Black : Color::White;
@@ -210,9 +274,49 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
 }
 
 void Board::undoMove(const MoveUndo &undo) {
-    board[undo.move.current.r][undo.move.current.c] = board[undo.move.destination.r][undo.move.destination.c];
-    board[undo.move.destination.r][undo.move.destination.c] = undo.captured;
+    switch (undo.move.type) {
+        case MoveType::EnPassant:
+            // Restore moving pawn
+            board[undo.move.current.r][undo.move.current.c] = undo.movedPiece;
+            board[undo.move.destination.r][undo.move.destination.c] = Piece(PieceKind::None, Color::None);
+            // Restore captured pawn (was beside the moving pawn)
+            board[undo.move.current.r][undo.move.destination.c] = undo.captured;
+            break;
+        default:
+            board[undo.move.current.r][undo.move.current.c] = board[undo.move.destination.r][undo.move.destination.c];
+            board[undo.move.destination.r][undo.move.destination.c] = undo.captured;
+            break;
+    }
+
+
+    whiteKingMoved = undo.whiteKingMoved;
+    whiteRookKingsideMoved = undo.whiteRookKingsideMoved;
+    whiteRookQueensideMoved = undo.whiteRookQueensideMoved;
+    blackKingMoved = undo.blackKingMoved;
+    blackRookKingsideMoved = undo.blackRookKingsideMoved;
+    blackRookQueensideMoved = undo.blackRookQueensideMoved;
     side = (side == Color::White) ? Color::Black : Color::White;
+}
+
+void Board::movePiece(const Square& from, const Square& to) {
+    board[to.r][to.c] = board[from.r][from.c];
+    board[from.r][from.c] = Piece(PieceKind::None, Color::None);
+}
+
+void Board::updateCastlingRights(const Piece& piece, const Move& move) {
+    if (piece.kind == PieceKind::King) {
+        if (piece.color == Color::White) whiteKingMoved = true;
+        else blackKingMoved = true;
+    }
+    else if (piece.kind == PieceKind::Rook) {
+        if (piece.color == Color::White) {
+            if (move.current.r == 7 && move.current.c == 7) whiteRookKingsideMoved = true;
+            if (move.current.r == 7 && move.current.c == 0) whiteRookQueensideMoved = true;
+        } else {
+            if (move.current.r == 0 && move.current.c == 7) blackRookKingsideMoved = true;
+            if (move.current.r == 0 && move.current.c == 0) blackRookQueensideMoved = true;
+        }
+    }
 }
 
 void Board::print() const {

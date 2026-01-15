@@ -15,5 +15,32 @@ public:
                 moves.emplace_back(Square(row, col), Square(r, c));
             }
         }
+
+        // castling
+        if (king.color == Color::White && !board.whiteKingMoved && !board.isChecked()) {
+            tryAddCastle(board, row, 7, col, 1, board.whiteRookKingsideMoved, moves);   // kingside
+            tryAddCastle(board, row, 0, col, -1, board.whiteRookQueensideMoved, moves); // queenside
+        } else if (king.color == Color::Black && !board.blackKingMoved && !board.isChecked()) {
+            tryAddCastle(board, row, 7, col, 1, board.blackRookKingsideMoved, moves);   // kingside
+            tryAddCastle(board, row, 0, col, -1, board.blackRookQueensideMoved, moves); // queenside
+        }
+    }
+
+private:
+    static void tryAddCastle(Board &board, int row, int rookCol, int kingCol,
+                             int dir, bool rookMoved, std::vector<Move> &moves) {
+        if (rookMoved) return;
+
+        for (int c = kingCol + dir; c != rookCol; c += dir) {
+            if (board.at(row, c).kind != PieceKind::None) return;
+        }
+
+        int dest = kingCol + 2 * dir;
+        if (board.squareAttacked(Square(row, kingCol + dir)) ||
+            board.squareAttacked(Square(row, dest))) {
+            return;
+            }
+
+        moves.emplace_back(Square(row, kingCol), Square(row, dest), MoveType::Castle);
     }
 };
