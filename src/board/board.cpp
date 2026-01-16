@@ -42,19 +42,64 @@ void Board::init() {
 }
 
 void Board::loadFEN(const std::string& fen) {
+    auto fail = [](const std::string& msg) {
+        throw std::invalid_argument("Invalid FEN: " + msg);
+    };
+
     std::istringstream ss(fen);
     std::string piecePlacement, activeColor, castling, enPassant;
-    ss >> piecePlacement >> activeColor >> castling >> enPassant;
 
-    // Clear board
+    if (!(ss >> piecePlacement >> activeColor >> castling >> enPassant)) {
+        fail("must have at least 4 fields");
+    }
+
+    // Validate piece placement structure
+    int row = 0, col = 0;
+    for (char ch : piecePlacement) {
+        if (ch == '/') {
+            if (col != 8) fail("incomplete row");
+            row++;
+            col = 0;
+        } else if (std::isdigit(ch)) {
+            col += ch - '0';
+            if (col > 8) fail("too many squares in row");
+        } else if (std::strchr("pnbrqkPNBRQK", ch)) {
+            col++;
+            if (col > 8) fail("too many squares in row");
+        } else {
+            fail("invalid piece character: " + std::string(1, ch));
+        }
+    }
+    if (row != 7 || col != 8) fail("must have 8 complete rows");
+
+    // Validate active color
+    if (activeColor != "w" && activeColor != "b") {
+        fail("active color must be 'w' or 'b'");
+    }
+
+    // Validate castling
+    if (castling != "-") {
+        for (char ch : castling) {
+            if (!std::strchr("KQkq", ch)) {
+                fail("invalid castling character: " + std::string(1, ch));
+            }
+        }
+    }
+
+    // Validate en passant
+    if (enPassant != "-") {
+        if (enPassant.length() != 2) fail("en passant must be 2 characters");
+        if (enPassant[0] < 'a' || enPassant[0] > 'h') fail("invalid en passant file");
+        if (enPassant[1] != '3' && enPassant[1] != '6') fail("en passant rank must be 3 or 6");
+    }
+
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             setAt(r, c, Piece(PieceKind::None, Color::None));
         }
     }
 
-    // Parse piece placement
-    int row = 0, col = 0;
+    row = 0; col = 0;
     for (char ch : piecePlacement) {
         if (ch == '/') {
             row++;
@@ -71,7 +116,6 @@ void Board::loadFEN(const std::string& fen) {
 
     setSide(activeColor == "w" ? Color::White : Color::Black);
 
-    // Castling rights
     whiteKingMoved = (castling.find('K') == std::string::npos && castling.find('Q') == std::string::npos);
     whiteRookKingsideMoved = (castling.find('K') == std::string::npos);
     whiteRookQueensideMoved = (castling.find('Q') == std::string::npos);
@@ -79,7 +123,6 @@ void Board::loadFEN(const std::string& fen) {
     blackRookKingsideMoved = (castling.find('k') == std::string::npos);
     blackRookQueensideMoved = (castling.find('q') == std::string::npos);
 
-    // En passant
     if (enPassant != "-") {
         int c = enPassant[0] - 'a';
         int r = 8 - (enPassant[1] - '0');
@@ -131,7 +174,18 @@ std::string Board::toFEN() const {
 }
 
 std::optional<Move> Board::parseUCI(const std::string& uci) const {
-    if (uci.length() < 4) return std::nullopt;
+    auto fail = [](const std::string& msg) -> std::optional<Move> {
+        throw std::invalid_argument("Invalid UCI: " + msg);
+    };
+
+    if (uci.length() < 4 || uci.length() > 5) {
+        return fail("must be 4-5 characters");
+    }
+
+    if (uci[0] < 'a' || uci[0] > 'h') return fail("invalid from file");
+    if (uci[1] < '1' || uci[1] > '8') return fail("invalid from rank");
+    if (uci[2] < 'a' || uci[2] > 'h') return fail("invalid to file");
+    if (uci[3] < '1' || uci[3] > '8') return fail("invalid to rank");
 
     int fromCol = uci[0] - 'a';
     int fromRow = 8 - (uci[1] - '0');
@@ -142,8 +196,14 @@ std::optional<Move> Board::parseUCI(const std::string& uci) const {
     Square to(toRow, toCol);
 
     Piece piece = at(fromRow, fromCol);
+    if (piece.kind == PieceKind::None) {
+        return fail("no piece at source square");
+    }
 
     if (uci.length() == 5) {
+        if (!std::strchr("qrbn", uci[4])) {
+            return fail("invalid promotion piece");
+        }
         PieceKind promo = charToKind(uci[4]);
         return Move(from, to, MoveType::Promotion, promo);
     }
@@ -155,7 +215,7 @@ std::optional<Move> Board::parseUCI(const std::string& uci) const {
     if (piece.kind == PieceKind::Pawn && toCol != fromCol &&
         at(toRow, toCol).kind == PieceKind::None) {
         return Move(from, to, MoveType::EnPassant);
-    }
+        }
 
     return Move(from, to);
 }
