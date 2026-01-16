@@ -25,7 +25,7 @@ public:
     [[nodiscard]] Color getColor() const;
     [[nodiscard]] Piece at(int r, int c) const;
     [[nodiscard]] std::optional<Move> parseUCI(const std::string& uci) const;
-    [[nodiscard]] std::string toUCI(const Move& move) const;
+    static [[nodiscard]] std::string toUCI(const Move& move) ;
 
 private:
     Piece board[8][8]{};

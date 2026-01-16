@@ -21,8 +21,8 @@ void Board::init() {
             cell = Piece(PieceKind::None, Color::None);
 
     for (int j = 0; j < 8; j++) {
-        board[6][j] = Piece(PieceKind::Pawn, Color::White);
-        board[1][j] = Piece(PieceKind::Pawn, Color::Black);
+        setAt(6, j, Piece(PieceKind::Pawn, Color::White));
+        setAt(1, j, Piece(PieceKind::Pawn, Color::Black));
     }
 
     Piece whiteBack[8] = {
@@ -36,8 +36,8 @@ void Board::init() {
     };
 
     for (int j = 0; j < 8; j++) {
-        board[7][j] = whiteBack[j];
-        board[0][j] = blackBack[j];
+        setAt(7, j, whiteBack[j]);
+        setAt(0, j, blackBack[j]);
     }
 }
 
@@ -63,7 +63,7 @@ void Board::loadFEN(const std::string& fen) {
             col += ch - '0';
         } else {
             Color color = std::isupper(ch) ? Color::White : Color::Black;
-            PieceKind kind = charToKind(std::tolower(ch));
+            PieceKind kind = charToKind(static_cast<char>(std::tolower(ch)));
             setAt(row, col, Piece(kind, color));
             col++;
         }
@@ -160,7 +160,7 @@ std::optional<Move> Board::parseUCI(const std::string& uci) const {
     return Move(from, to);
 }
 
-std::string Board::toUCI(const Move& move) const {
+std::string Board::toUCI(const Move& move) {
     std::ostringstream ss;
     ss << static_cast<char>('a' + move.current.c)
        << (8 - move.current.r)
@@ -213,7 +213,7 @@ char Board::kindToChar(PieceKind kind, Color color) {
         case PieceKind::King:   c = 'k'; break;
         default: return '?';
     }
-    return color == Color::White ? std::toupper(c) : c;
+    return color == Color::White ? static_cast<char>(std::toupper(c)) : c;
 }
 
 Piece Board::at(const int r, const int c) const {
