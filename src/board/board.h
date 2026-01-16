@@ -5,8 +5,11 @@
 class Board {
 public:
     Board();
+    explicit Board(const std::string& fen);
     void init();
     void print() const;
+    void loadFEN(const std::string& fen);
+    [[nodiscard]] std::string toFEN() const;
     bool whiteKingMoved = false;
     bool blackKingMoved = false;
     bool whiteRookKingsideMoved = false;
@@ -17,18 +20,22 @@ public:
     MoveUndo makeMove(const Move& move, bool hypothetical);
     void undoMove(const MoveUndo& undo);
     bool validate(const Move& move);
-    bool squareAttacked(const Square& square) const;
+    [[nodiscard]] bool squareAttacked(const Square& square) const;
     [[nodiscard]] bool isChecked() const;
     [[nodiscard]] Color getColor() const;
     [[nodiscard]] Piece at(int r, int c) const;
+    [[nodiscard]] std::optional<Move> parseUCI(const std::string& uci) const;
+    [[nodiscard]] std::string toUCI(const Move& move) const;
 
 private:
-    Piece board[8][8];
+    Piece board[8][8]{};
     Color side = Color::White;
-    bool canCastleKingside[2]{};
-    bool canCastleQueenside[2]{};
     void movePiece(const Square& from, const Square& to);
     void updateCastlingRights(const Piece& piece, const Move& move);
+    void setAt(int r, int c, Piece p);
+    void setSide(Color c);
+    static PieceKind charToKind(char c);
+    static char kindToChar(PieceKind kind, Color color);
     [[nodiscard]] bool directionalAttacked(Square piece, int dr, int dc) const;
     [[nodiscard]] bool knightAttacked(Square piece) const;
     [[nodiscard]] bool pawnAttacked(Square piece) const;
