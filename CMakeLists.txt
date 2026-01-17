@@ -1,10 +1,25 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 3.28.2)
 project(chess)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include_directories(include)
-include_directories(src)
+find_package(GTest REQUIRED)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-add_executable(chess ${SOURCES})
+file(GLOB_RECURSE LIB_SOURCES "src/*.cpp")
+list(FILTER LIB_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
+
+add_library(chess_lib ${LIB_SOURCES})
+target_include_directories(chess_lib PUBLIC include)
+
+add_executable(chess src/main.cpp)
+target_link_libraries(chess chess_lib)
+
+enable_testing()
+add_executable(chess_tests
+        tests/test_board.cpp
+        tests/test_pawn.cpp
+)
+target_link_libraries(chess_tests chess_lib GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(chess_tests)

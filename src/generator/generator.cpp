@@ -1,4 +1,4 @@
-#include "generator.h"
+#include "generator/generator.h"
 #include "pieces.h"
 #include "dispatch/piece_dispatch.h"
 

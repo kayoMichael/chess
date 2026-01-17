@@ -1,6 +1,6 @@
 #include "board/board.h"
 #include "move.h"
-#include "search.h"
+#include "../../include/search/search.h"
 #include "generator/generator.h"
 #include "piece_type.h"
 #include <algorithm>

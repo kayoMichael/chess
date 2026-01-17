@@ -1,4 +1,4 @@
-#include "piece_dispatch.h"
+#include "dispatch/piece_dispatch.h"
 #include <unordered_map>
 
 const ChessPiece& dispatchPiece(PieceKind kind) {

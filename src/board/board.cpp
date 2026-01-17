@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 
-#include "board.h"
+#include "board/board.h"
 #include "move.h"
 #include "movement_const.h"
 
