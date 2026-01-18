@@ -5,7 +5,7 @@
 class Search {
 public:
     Move findBestMove(Board& board, int depth);
+    static int evaluate(const Board& board);
 private:
     int alphaBeta(Board& board, int depth, int alpha, int beta);
-    static int evaluate(const Board& board);
 };

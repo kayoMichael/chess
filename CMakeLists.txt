@@ -25,6 +25,7 @@ add_executable(chess_tests
         tests/test_board.cpp
         tests/test_pawn.cpp
         tests/test_king.cpp
+        tests/test_search.cpp
 )
 target_link_libraries(chess_tests chess_lib GTest::gtest_main)
 
