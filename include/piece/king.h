@@ -5,7 +5,8 @@
 class King : public ChessPiece {
 public:
     void generateMoves(Board &board, int row, int col, std::vector<Move> &moves) const override {
-        Piece king = board.at(row, col);
+        const Piece king = board.at(row, col);
+        const Color opponent = (king.color == Color::White) ? Color::Black : Color::White;
         for (const auto [dr, dc] : MovementConst::CHEBYSHEV_DIRECTIONS) {
             const int r = row + dr;
             const int c = col + dc;
@@ -17,18 +18,20 @@ public:
         }
 
         // castling
-        if (king.color == Color::White && !board.whiteKingMoved && !board.isChecked()) {
-            tryAddCastle(board, row, 7, col, 1, board.whiteRookKingsideMoved, moves);   // kingside
-            tryAddCastle(board, row, 0, col, -1, board.whiteRookQueensideMoved, moves); // queenside
-        } else if (king.color == Color::Black && !board.blackKingMoved && !board.isChecked()) {
-            tryAddCastle(board, row, 7, col, 1, board.blackRookKingsideMoved, moves);   // kingside
-            tryAddCastle(board, row, 0, col, -1, board.blackRookQueensideMoved, moves); // queenside
+        // king must be on starting square (e1 or e8). Only applicable for FEN since moving king auto loses eligibility.
+        if (col != 4) return;
+        if (king.color == Color::White && !board.whiteKingMoved && !board.isChecked(Color::White)) {
+            tryAddCastle(board, row, 7, col, 1, board.whiteRookKingsideMoved, moves, opponent);   // kingside
+            tryAddCastle(board, row, 0, col, -1, board.whiteRookQueensideMoved, moves, opponent); // queenside
+        } else if (king.color == Color::Black && !board.blackKingMoved && !board.isChecked(Color::Black)) {
+            tryAddCastle(board, row, 7, col, 1, board.blackRookKingsideMoved, moves, opponent);   // kingside
+            tryAddCastle(board, row, 0, col, -1, board.blackRookQueensideMoved, moves, opponent); // queenside
         }
     }
 
 private:
     static void tryAddCastle(Board &board, int row, int rookCol, int kingCol,
-                             int dir, bool rookMoved, std::vector<Move> &moves) {
+                             int dir, bool rookMoved, std::vector<Move> &moves, Color opponent) {
         if (rookMoved) return;
 
         for (int c = kingCol + dir; c != rookCol; c += dir) {
@@ -36,8 +39,8 @@ private:
         }
 
         int dest = kingCol + 2 * dir;
-        if (board.squareAttacked(Square(row, kingCol + dir)) ||
-            board.squareAttacked(Square(row, dest))) {
+        if (board.squareAttacked(Square(row, kingCol + dir), opponent) ||
+            board.squareAttacked(Square(row, dest), opponent)) {
             return;
             }
 

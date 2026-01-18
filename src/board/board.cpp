@@ -318,31 +318,31 @@ bool Board::validate(const Move& move) {
         if (found) break;
     }
 
+    const Color currSide = (hypothetical.side == Color::White) ? Color::Black : Color::White;
+
     // Pawn Attack
-    if (hypothetical.pawnAttacked(kingPosition)) return false;
+    if (hypothetical.pawnAttacked(kingPosition, currSide)) return false;
 
     // Knight Attack
-    if (hypothetical.knightAttacked(kingPosition)) return false;
+    if (hypothetical.knightAttacked(kingPosition, currSide)) return false;
 
     // King Attack
-    if (hypothetical.kingAttacked(kingPosition)) return false;
+    if (hypothetical.kingAttacked(kingPosition, currSide)) return false;
 
     for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
-        if (hypothetical.directionalAttacked(kingPosition, r, c)) return false;
+        if (hypothetical.directionalAttacked(kingPosition, r, c, currSide)) return false;
     }
 
     return true;
 }
 
-// After makeMove(), side has flipped to the next player.
-// So we check if the previous player's king (now != side) is in check.
-bool Board::isChecked() const {
+bool Board::isChecked(const Color kingColor) const {
     Square kingPosition = {};
     bool found = false;
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             Piece piece = at(r, c);
-            if (piece.color != side && piece.kind == PieceKind::King) {
+            if (piece.color == kingColor && piece.kind == PieceKind::King) {
                 kingPosition.r = r;
                 kingPosition.c = c;
                 found = true;
@@ -351,45 +351,48 @@ bool Board::isChecked() const {
         }
         if (found) break;
     }
-    if (knightAttacked(kingPosition) || pawnAttacked(kingPosition)) return true;
+
+    Color attacker = (kingColor == Color::White) ? Color::Black : Color::White;
+    if (knightAttacked(kingPosition, attacker) || pawnAttacked(kingPosition, attacker)) return true;
     for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
-        if (directionalAttacked(kingPosition, r, c)) return true;
+        if (directionalAttacked(kingPosition, r, c, attacker)) return true;
     }
     return false;
 }
 
-bool Board::squareAttacked(const Square &square) const {
+bool Board::squareAttacked(const Square &square, const Color attackerColor) const {
     // Pawn Attack
-    if (pawnAttacked(square)) return true;
+    if (pawnAttacked(square, attackerColor)) return true;
 
     // Knight Attack
-    if (knightAttacked(square)) return true;
+    if (knightAttacked(square, attackerColor)) return true;
 
     // King Attack
-    if (kingAttacked(square)) return true;
+    if (kingAttacked(square, attackerColor)) return true;
 
     for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
-        if (directionalAttacked(square, r, c)) return true;
+        if (directionalAttacked(square, r, c, attackerColor)) return true;
     }
 
     return false;
 }
 
-bool Board::pawnAttacked(Square piece) const {
-    int dir = (side == Color::White) ? -1 : 1;
+bool Board::pawnAttacked(const Square piece, const Color attackerColor) const {
+    int dir = (attackerColor == Color::White) ? 1 : -1;
+
     for (int dc : {-1, 1}) {
         const int nr = piece.r + dir;
         const int nc = piece.c + dc;
-        if (0 > nr || nr >= 8 || 0 > nc || nc >= 8) continue;
+        if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) continue;
 
         Piece p = at(nr, nc);
-        if (p.color != side && p.kind == PieceKind::Pawn)
+        if (p.color == attackerColor && p.kind == PieceKind::Pawn)
             return true;
     }
     return false;
 }
 
-bool Board::directionalAttacked(Square piece, int dr, int dc) const{
+bool Board::directionalAttacked(const Square piece, const int dr, const int dc, const Color attackerColor) const{
     int r = piece.r + dr;
     int c = piece.c + dc;
 
@@ -401,7 +404,7 @@ bool Board::directionalAttacked(Square piece, int dr, int dc) const{
             c += dc;
             continue;
         }
-        if (p.color != side) {
+        if (p.color == attackerColor) {
             if ((p.kind == PieceKind::Rook || p.kind == PieceKind::Queen) &&
                 (dr == 0 || dc == 0)) {
                 return true;
@@ -419,13 +422,13 @@ bool Board::directionalAttacked(Square piece, int dr, int dc) const{
     return false;
 }
 
-bool Board::knightAttacked(Square piece) const {
+bool Board::knightAttacked(const Square piece, const Color attackerColor) const {
     for (auto [dr, dc] : MovementConst::KNIGHT_LATTICE_DISPLACEMENTS) {
         int nr = dr + piece.r;
         int nc = dc + piece.c;
         if (0 <= nr && nr < 8 && 0 <= nc && nc < 8) {
             Piece potentialKnight = at(nr, nc);
-            if (side != potentialKnight.color && potentialKnight.kind == PieceKind::Knight) {
+            if (attackerColor == potentialKnight.color && potentialKnight.kind == PieceKind::Knight) {
                 return true;
             }
         }
@@ -433,14 +436,14 @@ bool Board::knightAttacked(Square piece) const {
     return false;
 }
 
-bool Board::kingAttacked(Square piece) const {
+bool Board::kingAttacked(const Square piece, const Color attackerColor) const {
     for (auto [r, c]: MovementConst::CHEBYSHEV_DIRECTIONS) {
         int nr = piece.r + r;
         int nc = piece.c + c;
 
         if (0 <= nr && nr < 8 && 0 <= nc && nc < 8) {
             Piece p = at(nr, nc);
-            if (p.kind == PieceKind::King) {
+            if (p.kind == PieceKind::King && p.color == attackerColor) {
                 return true;
             }
         }
