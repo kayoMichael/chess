@@ -2,7 +2,6 @@
 #include <sstream>
 #include "board/board.h"
 #include "search/search.h"
-#include "generator/generator.h"
 
 void uciLoop() {
     Board board;
@@ -15,8 +14,8 @@ void uciLoop() {
         ss >> cmd;
 
         if (cmd == "uci") {
-            std::cout << "id name MyChessEngine\n";
-            std::cout << "id author YourName\n";
+            std::cout << "id name Viktoriya Ivanovna Serebryakova\n";
+            std::cout << "id author Michael Li\n";
             std::cout << "uciok\n";
         }
         else if (cmd == "isready") {
