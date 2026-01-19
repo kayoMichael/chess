@@ -1,11 +1,71 @@
-#include <string>
-
+#include <iostream>
+#include <sstream>
 #include "board/board.h"
+#include "search/search.h"
+#include "generator/generator.h"
+
+void uciLoop() {
+    Board board;
+    Search search;
+    std::string line;
+
+    while (std::getline(std::cin, line)) {
+        std::istringstream ss(line);
+        std::string cmd;
+        ss >> cmd;
+
+        if (cmd == "uci") {
+            std::cout << "id name MyChessEngine\n";
+            std::cout << "id author YourName\n";
+            std::cout << "uciok\n";
+        }
+        else if (cmd == "isready") {
+            std::cout << "readyok\n";
+        }
+        else if (cmd == "ucinewgame") {
+            board = Board();
+        }
+        else if (cmd == "position") {
+            std::string token;
+            ss >> token;
+
+            if (token == "startpos") {
+                board = Board();
+            } else if (token == "fen") {
+                std::string fen;
+                for (int i = 0; i < 6 && ss >> token; i++) {
+                    fen += (i > 0 ? " " : "") + token;
+                }
+                board = Board(fen);
+            }
+
+            // Parse moves
+            while (ss >> token) {
+                if (token == "moves") continue;
+                auto move = board.parseUCI(token);
+                if (move) board.makeMove(*move, false);
+            }
+        }
+        else if (cmd == "go") {
+            // Simple: fixed depth
+            int depth = 5;
+            std::string token;
+            while (ss >> token) {
+                if (token == "depth") ss >> depth;
+            }
+
+            Move best = search.findBestMove(board, depth);
+            std::cout << "bestmove " << Board::toUCI(best) << "\n";
+        }
+        else if (cmd == "quit") {
+            break;
+        }
+
+        std::cout.flush();
+    }
+}
 
 int main() {
-    const std::string fen = "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1";
-
-    Board board = Board(fen);
-
-    board.print();
+    uciLoop();
+    return 0;
 }
