@@ -1,4 +1,8 @@
 #pragma once
+
+#include <string>
+#include <optional>
+
 #include "move.h"
 #include "piece_type.h"
 
@@ -20,8 +24,8 @@ public:
     MoveUndo makeMove(const Move& move, bool hypothetical);
     void undoMove(const MoveUndo& undo);
     bool validate(const Move& move);
-    [[nodiscard]] bool squareAttacked(const Square& square) const;
-    [[nodiscard]] bool isChecked() const;
+    [[nodiscard]] bool squareAttacked(const Square& square, Color attackerColor) const;
+    [[nodiscard]] bool isChecked(Color kingColor) const;
     [[nodiscard]] Color getColor() const;
     [[nodiscard]] Piece at(int r, int c) const;
     [[nodiscard]] std::optional<Move> parseUCI(const std::string& uci) const;
@@ -36,8 +40,8 @@ private:
     void setSide(Color c);
     static PieceKind charToKind(char c);
     static char kindToChar(PieceKind kind, Color color);
-    [[nodiscard]] bool directionalAttacked(Square piece, int dr, int dc) const;
-    [[nodiscard]] bool knightAttacked(Square piece) const;
-    [[nodiscard]] bool pawnAttacked(Square piece) const;
-    [[nodiscard]] bool kingAttacked(Square piece) const;
+    [[nodiscard]] bool directionalAttacked(Square piece, int dr, int dc, Color attackerColor) const;
+    [[nodiscard]] bool knightAttacked(Square piece, Color attackerColor) const;
+    [[nodiscard]] bool pawnAttacked(Square piece, Color attackerColor) const;
+    [[nodiscard]] bool kingAttacked(Square piece, Color attackerColor) const;
 };

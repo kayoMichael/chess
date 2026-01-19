@@ -1,6 +1,7 @@
+#include "search/search.h"
+
 #include "board/board.h"
 #include "move.h"
-#include "search.h"
 #include "generator/generator.h"
 #include "piece_type.h"
 #include <algorithm>
@@ -49,10 +50,12 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta) {
         return evaluate(board);
     }
     std::vector<Move> moves = Generator::generateLegalMoves(board);
-    Color side = board.getColor();
-    if (moves.empty() && board.isChecked()) {
-        // checkmate
-        if (side == Color::Black) return MATE - depth; // Find shortest checkmate
+    const Color side = board.getColor();
+    if (moves.empty() && board.isChecked(side)) {
+        // Checkmate - side to move loses
+        // White checkmated = negative (good for black)
+        // Black checkmated = positive (good for white)
+        if (side == Color::Black) return MATE - depth;
         return -MATE + depth;
     } else if (moves.empty()) {
         //stalemate
