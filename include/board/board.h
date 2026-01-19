@@ -1,4 +1,8 @@
 #pragma once
+
+#include <string>
+#include <optional>
+
 #include "move.h"
 #include "piece_type.h"
 

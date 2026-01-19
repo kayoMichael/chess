@@ -1,11 +1,15 @@
+#include "board/board.h"
+
 #include <iostream>
 #include <cassert>
-#include <string>
 #include <sstream>
 #include <cstring>
+#include <cctype>
+#include <stdexcept>
+#include <cctype>
+#include <stdexcept>
+#include <cmath>
 
-#include "board/board.h"
-#include "move.h"
 #include "movement_const.h"
 
 Board::Board() {
