@@ -1,23 +1,8 @@
 #include <gtest/gtest.h>
 #include "piece/rook.h"
+#include "test_base.h"
 
-class RookTest : public ::testing::Test {
-protected:
-    Rook rook;
-    std::vector<Move> moves;
-
-    void generateMoves(Board& board, int row, int col) {
-        moves.clear();
-        rook.generateMoves(board, row, col, moves);
-    }
-
-    bool hasMove(int toR, int toC) {
-        for (const auto& m : moves) {
-            if (m.destination.r == toR && m.destination.c == toC) return true;
-        }
-        return false;
-    }
-};
+class RookTest : public TestBase<Rook> {};
 
 TEST_F(RookTest, RookInCenterEmptyBoard) {
     Board board("8/8/8/4R3/8/8/8/8 w - - 0 1");

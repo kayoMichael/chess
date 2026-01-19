@@ -1,18 +1,11 @@
 #include <gtest/gtest.h>
 #include "board/board.h"
 #include "piece/pawn.h"
+#include "test_base.h"
 
-class PawnTest : public ::testing::Test {
+class PawnTest : public TestBase<Pawn> {
 protected:
-    Pawn pawn;
-    std::vector<Move> moves;
-
-    void generateMoves(Board& board, int row, int col) {
-        moves.clear();
-        pawn.generateMoves(board, row, col, moves);
-    }
-
-    bool hasMove(int fromR, int fromC, int toR, int toC) {
+    [[nodiscard]] bool hasMove(int fromR, int fromC, int toR, int toC) const {
         for (const auto& m : moves) {
             if (m.current.r == fromR && m.current.c == fromC &&
                 m.destination.r == toR && m.destination.c == toC) {
@@ -22,7 +15,7 @@ protected:
         return false;
     }
 
-    bool hasPromotion(int fromR, int fromC, int toR, int toC, PieceKind promo) {
+    [[nodiscard]] bool hasPromotion(int fromR, int fromC, int toR, int toC, PieceKind promo) const {
         for (const auto& m : moves) {
             if (m.current.r == fromR && m.current.c == fromC &&
                 m.destination.r == toR && m.destination.c == toC &&
@@ -33,7 +26,7 @@ protected:
         return false;
     }
 
-    int countMovesOfType(MoveType type) {
+    [[nodiscard]] int countMovesOfType(MoveType type) const {
         int count = 0;
         for (const auto& m : moves) {
             if (m.type == type) count++;

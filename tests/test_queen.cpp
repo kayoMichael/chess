@@ -1,23 +1,8 @@
 #include <gtest/gtest.h>
 #include "piece/queen.h"
+#include "test_base.h"
 
-class QueenTest : public ::testing::Test {
-protected:
-    Queen queen;
-    std::vector<Move> moves;
-
-    void generateMoves(Board& board, int row, int col) {
-        moves.clear();
-        queen.generateMoves(board, row, col, moves);
-    }
-
-    bool hasMove(int toR, int toC) {
-        for (const auto& m : moves) {
-            if (m.destination.r == toR && m.destination.c == toC) return true;
-        }
-        return false;
-    }
-};
+class QueenTest : public TestBase<Queen> {};
 
 TEST_F(QueenTest, QueenInCenterEmptyBoard) {
     Board board("8/8/8/4Q3/8/8/8/8 w - - 0 1");

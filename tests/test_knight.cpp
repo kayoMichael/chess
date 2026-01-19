@@ -1,23 +1,8 @@
 #include <gtest/gtest.h>
 #include "piece/knight.h"
+#include "test_base.h"
 
-class KnightTest : public ::testing::Test {
-protected:
-    Knight knight;
-    std::vector<Move> moves;
-
-    void generateMoves(Board& board, int row, int col) {
-        moves.clear();
-        knight.generateMoves(board, row, col, moves);
-    }
-
-    bool hasMove(int toR, int toC) {
-        for (const auto& m : moves) {
-            if (m.destination.r == toR && m.destination.c == toC) return true;
-        }
-        return false;
-    }
-};
+class KnightTest : public TestBase<Knight> {};
 
 TEST_F(KnightTest, KnightInCenterHasEightMoves) {
     Board board("8/8/8/4N3/8/8/8/8 w - - 0 1");

@@ -1,17 +1,10 @@
 #include <gtest/gtest.h>
 #include "board/board.h"
 #include "piece/king.h"
+#include "test_base.h"
 
-class KingTest : public ::testing::Test {
+class KingTest : public TestBase<King> {
 protected:
-    King king;
-    std::vector<Move> moves;
-
-    void generateMoves(Board& board, int row, int col) {
-        moves.clear();
-        king.generateMoves(board, row, col, moves);
-    }
-
     bool hasMove(int fromR, int fromC, int toR, int toC) {
         for (const auto& m : moves) {
             if (m.current.r == fromR && m.current.c == fromC &&
