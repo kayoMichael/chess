@@ -2,6 +2,7 @@
 #include <cassert>
 #include <string>
 #include <sstream>
+#include <cstring>
 
 #include "board/board.h"
 #include "move.h"
@@ -63,7 +64,7 @@ void Board::loadFEN(const std::string& fen) {
         } else if (std::isdigit(ch)) {
             col += ch - '0';
             if (col > 8) fail("too many squares in row");
-        } else if (std::strchr("pnbrqkPNBRQK", ch)) {
+        } else if (::strchr("pnbrqkPNBRQK", ch)) {
             col++;
             if (col > 8) fail("too many squares in row");
         } else {
@@ -80,7 +81,7 @@ void Board::loadFEN(const std::string& fen) {
     // Validate castling
     if (castling != "-") {
         for (char ch : castling) {
-            if (!std::strchr("KQkq", ch)) {
+            if (!::strchr("KQkq", ch)) {
                 fail("invalid castling character: " + std::string(1, ch));
             }
         }
@@ -201,7 +202,7 @@ std::optional<Move> Board::parseUCI(const std::string& uci) const {
     }
 
     if (uci.length() == 5) {
-        if (!std::strchr("qrbn", uci[4])) {
+        if (!::strchr("qrbn", uci[4])) {
             return fail("invalid promotion piece");
         }
         PieceKind promo = charToKind(uci[4]);
