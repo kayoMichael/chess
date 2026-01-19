@@ -456,6 +456,19 @@ bool Board::kingAttacked(const Square piece, const Color attackerColor) const {
     return false;
 }
 
+std::vector<Piece> Board::pieces() const {
+    std::vector<Piece> pieces;
+
+    for (auto& row: board) {
+        for (auto& piece: row) {
+            if (piece.kind != PieceKind::None) {
+                pieces.push_back(piece);
+            }
+        }
+    }
+    return pieces;
+}
+
 MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
     MoveUndo undo;
     Piece current_piece = at(move.current.r, move.current.c);

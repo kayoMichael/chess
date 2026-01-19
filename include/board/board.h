@@ -30,7 +30,7 @@ public:
     [[nodiscard]] Piece at(int r, int c) const;
     [[nodiscard]] std::optional<Move> parseUCI(const std::string& uci) const;
     static std::string toUCI(const Move& move);
-
+    std::vector<Piece> pieces() const;
 private:
     Piece board[8][8]{};
     Color side = Color::White;
