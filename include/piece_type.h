@@ -24,7 +24,7 @@ constexpr int knightPST_EARLY[8][8] = {
     {-30,   0,   5,   5,   5,   5,   0, -30},
     {-30,   0,   5,  10,  10,   5,   0, -30},
     {-30,   0,   5,  10,  10,   5,   0, -30},
-    {-30,   0,  20,   5,   5,  20,   0, -30},  // c3/f3 good, d3/e3 okay but impossible to get to unless moving the knight twice.
+    {-30,   0,  15,   5,   5,  15,   0, -30},  // c3/f3 good, d3/e3 okay but impossible to get to unless moving the knight twice.
     {-40, -20,   0,   5,   5,   0, -20, -40},  // d2/e2 fine
     {-50, -40, -30, -30, -30, -30, -40, -50},
 };
@@ -142,7 +142,7 @@ constexpr int pawnPST[8][8] = {
     { 50,  50,  50,  50,  50,  50,  50,  50},  // rank 7 (about to promote)
     { 20,  20,  25,  30,  30,  25,  20,  20},
     { 10,  10,  15,  25,  25,  15,  10,  10},
-    {  5,   5,  10,  20,  20,  10,   5,   5},
+    {  5,   5,  20,  20,  20,  10,   5,   5}, // English (Sicillian Black), E4 (E5), Queen's Gambit (d5, Scandanavian)
     {  0,   0,   5,  10,  10,   5,   0,   0},
     {  0,   0,   0,   -5,  -5,   0,   0,   0},
     {  0,   0,   0,   0,   0,   0,   0,   0},
