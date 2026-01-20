@@ -23,7 +23,7 @@ Move Search::findBestMove(Board& board, const int depth) {
         int bestScore = -INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
-            int score = alphaBeta(board, depth - 1, alpha, beta, 0);
+            int score = alphaBeta(board, depth - 1, 1, alpha, beta);
             board.undoMove(undo);
             if (score > bestScore) {
                 bestScore = score;
@@ -36,7 +36,7 @@ Move Search::findBestMove(Board& board, const int depth) {
         int bestScore = INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
-            int score = alphaBeta(board, depth - 1, alpha, beta, 0);
+            int score = alphaBeta(board, depth - 1, 1, alpha, beta);
             board.undoMove(undo);
             if (score < bestScore) {
                 bestScore = score;
@@ -50,14 +50,13 @@ Move Search::findBestMove(Board& board, const int depth) {
     return bestMove;
 }
 
-int Search::alphaBeta(Board &board, int depth, int alpha, int beta, int extension) {
-    if (board.isChecked(board.getColor()) && extension < 4) {
-        depth++; // Check Extension to keep going at max 4 times to prevent perpetual check infinite loop
-        extension++;
-    }
-    if (depth == 0) {
+int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
+    if (depth == 0) { // Don't stop if the board is still violent.
         return quiescence(board, alpha, beta);
     }
+
+    bool inCheck = board.isChecked(board.getColor());
+    int newDepth = depth - 1 + (inCheck ? 1 : 0); // Extend if check
     std::vector<Move> moves = Generator::generateLegalMoves(board);
     orderMoves(moves, board);
     const Color side = board.getColor();
@@ -65,8 +64,8 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta, int extensio
         // Checkmate - side to move loses
         // White checkmated = negative (good for black)
         // Black checkmated = positive (good for white)
-        if (side == Color::Black) return MATE - depth;
-        return -MATE + depth;
+        if (side == Color::Black) return MATE - ply;
+        return -MATE + ply;
     } else if (moves.empty()) {
         //stalemate
         return 0;
@@ -76,7 +75,7 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta, int extensio
         int maxValue = -INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
-            int score = alphaBeta(board, depth - 1, alpha, beta, extension);
+            int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
             board.undoMove(undo);
             alpha = std::max(alpha, score);
             maxValue = std::max(maxValue, score);
@@ -87,7 +86,7 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta, int extensio
     int minValue = INF;
     for (auto& move : moves) {
         MoveUndo undo = board.makeMove(move,false);
-        int score = alphaBeta(board, depth - 1, alpha, beta, extension);
+        int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
         board.undoMove(undo);
         minValue = std::min(minValue, score);
         beta = std::min(beta, score);
