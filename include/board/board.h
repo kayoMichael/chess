@@ -2,6 +2,7 @@
 
 #include <string>
 #include <optional>
+#include <vector>
 
 #include "move.h"
 #include "piece_type.h"
