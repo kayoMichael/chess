@@ -109,6 +109,21 @@ int Search::evaluate(const Board &board) {
     double phase = computePhase(board) / static_cast<double>(MAX_PHASE);
     phase = std::clamp(phase, 0.0, 1.0);
 
+    auto enemyPieceAheadOnFile = [&](const int r, const int file, const int dr, const int dc, const Color color, PieceKind piece) {
+        return board.rayScan(r, file, dr, dc,
+            [&](const Piece& p) {
+                return p.kind == piece && p.color != color;
+            }
+        );
+    };
+
+    auto allowedSquares = [&](const int r, const int file, const int dr, const int dc, const Color color) {
+        return board.rayScanCount(r, file, dr, dc,
+            [&](const Piece& p) {
+                return p.kind != PieceKind::None;
+            });
+    };
+
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             const auto [kind, color] = board.at(r, c);
@@ -124,6 +139,7 @@ int Search::evaluate(const Board &board) {
             int pst_col = c;
 
             int pstScore = 0;
+            int dr = (color == Color::White) ? -1 : 1;
 
             switch (kind) {
                 case PieceKind::Knight:
@@ -133,19 +149,32 @@ int Search::evaluate(const Board &board) {
                     ));
                     break;
 
-                case PieceKind::Bishop:
+                case PieceKind::Bishop: {
                     pstScore = static_cast<int>(std::round(
                         bishopPST_EARLY[pst_row][pst_col] * phase +
                         bishopPST_LATE[pst_row][pst_col] * (1.0 - phase)
                     ));
-                    break;
+                    const int left_dig = allowedSquares(r, c, dr, -1, color);
+                    const int right_dig = allowedSquares(r, c, dr, 1, color);
+                    const int left_back_dig = allowedSquares(r, c, -dr, -1, color);
+                    const int right_back_dig = allowedSquares(r, c, -dr, 1, color);
 
-                case PieceKind::Rook:
+                    pstScore += static_cast<int>(std::round((left_dig + right_dig + left_back_dig * 0.5 + right_back_dig * 0.5) * 2 * phase));
+                    break;
+                }
+
+                case PieceKind::Rook: {
                     pstScore = static_cast<int>(std::round(
                         rookPST_EARLY[pst_row][pst_col] * phase +
                         rookPST_LATE[pst_row][pst_col] * (1.0 - phase)
                     ));
+                    const int forward = allowedSquares(r, c, dr, 0, color);
+                    const int backward = allowedSquares(r, c, -1, 0, color);
+                    const int left = allowedSquares(r, c, 0, -1, color);
+                    const int right = allowedSquares(r, c, 0, 1, color);
+                    pstScore += static_cast<int>(std::round((forward + backward + left * 0.5 + right * 0.5) * 2 * phase));
                     break;
+                }
 
                 case PieceKind::Queen:
                     pstScore = static_cast<int>(std::round(
@@ -162,10 +191,18 @@ int Search::evaluate(const Board &board) {
 
                     break;
 
-                case PieceKind::Pawn:
+                case PieceKind::Pawn: {
                     pstScore = pawnPST[pst_row][pst_col];
-                    break;
+                    bool sameFile = enemyPieceAheadOnFile(r, c, dr, 0, color, PieceKind::Pawn);
+                    bool leftFile  = ((c > 0) && enemyPieceAheadOnFile(r, c - 1, dr, 0, color, PieceKind::Pawn));
+                    bool rightFile = ((c < 7) && enemyPieceAheadOnFile(r, c + 1, dr, 0, color, PieceKind::Pawn));
 
+                    if (!sameFile && !leftFile && !rightFile) {
+                        int rankBonus = (color == Color::White) ? (7 - r) : r;  // 0-6, higher = more advanced
+                        pstScore += 10 + rankBonus * 15;  // 10 to 100 based on rank
+                    }
+                    break;
+                }
                 default:
                     break;
             }
