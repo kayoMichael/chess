@@ -11,10 +11,10 @@
 #include <ranges>
 
 
-Move Search::findBestMove(Board& board, int depth) {
+Move Search::findBestMove(Board& board, const int depth) {
     int alpha = -INF;
     int beta = INF;
-    std::vector<Move> moves = Generator::generateLegalMoves(board);
+    const std::vector<Move> moves = Generator::generateLegalMoves(board);
 
     Move bestMove;
     Color side = board.getColor();
@@ -23,7 +23,7 @@ Move Search::findBestMove(Board& board, int depth) {
         int bestScore = -INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
-            int score = alphaBeta(board, depth - 1, alpha, beta);
+            int score = alphaBeta(board, depth - 1, alpha, beta, 0);
             board.undoMove(undo);
             if (score > bestScore) {
                 bestScore = score;
@@ -36,7 +36,7 @@ Move Search::findBestMove(Board& board, int depth) {
         int bestScore = INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
-            int score = alphaBeta(board, depth - 1, alpha, beta);
+            int score = alphaBeta(board, depth - 1, alpha, beta, 0);
             board.undoMove(undo);
             if (score < bestScore) {
                 bestScore = score;
@@ -50,8 +50,11 @@ Move Search::findBestMove(Board& board, int depth) {
     return bestMove;
 }
 
-int Search::alphaBeta(Board &board, int depth, int alpha, int beta) {
-    if (board.isChecked(board.getColor())) depth++; // Check Extension to keep going
+int Search::alphaBeta(Board &board, int depth, int alpha, int beta, int extension) {
+    if (board.isChecked(board.getColor()) && extension < 4) {
+        depth++; // Check Extension to keep going at max 4 times to prevent perpetual check infinite loop
+        extension++;
+    }
     if (depth == 0) {
         return quiescence(board, alpha, beta);
     }
@@ -73,7 +76,7 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta) {
         int maxValue = -INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
-            int score = alphaBeta(board, depth - 1, alpha, beta);
+            int score = alphaBeta(board, depth - 1, alpha, beta, extension);
             board.undoMove(undo);
             alpha = std::max(alpha, score);
             maxValue = std::max(maxValue, score);
@@ -84,7 +87,7 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta) {
     int minValue = INF;
     for (auto& move : moves) {
         MoveUndo undo = board.makeMove(move,false);
-        int score = alphaBeta(board, depth - 1, alpha, beta);
+        int score = alphaBeta(board, depth - 1, alpha, beta, extension);
         board.undoMove(undo);
         minValue = std::min(minValue, score);
         beta = std::min(beta, score);
@@ -106,8 +109,9 @@ int Search::quiescence(Board& board, int alpha, int beta) {
             return alpha;
         beta = std::min(beta, stand_pat);
     }
-
-    for (const std::vector<Move> moves = Generator::generateLegalMoves(board); const Move& move : moves) {
+    std::vector<Move> moves = Generator::generateLegalMoves(board);
+    orderMoves(moves, board);
+    for (const Move& move : moves) {
         // Extend Search only for captures
         if (board.at(move.destination.r, move.destination.c).kind == PieceKind::None)
             continue;
