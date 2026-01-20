@@ -103,8 +103,8 @@ TEST_F(SearchTest, KnightOnRimIsDim) {
     Board board_rim("4k3/8/8/8/7N/8/8/4K3 w - - 0 1");
     Board board_center("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1");
 
-    int score_rim = search.evaluate(board_rim);
-    int score_center = search.evaluate(board_center);
+    int score_rim = Search::evaluate(board_rim);
+    int score_center = Search::evaluate(board_center);
 
     EXPECT_GT(score_center, score_rim);
 }
@@ -113,8 +113,8 @@ TEST_F(SearchTest, KnightInCornerWorst) {
     Board board_corner("4k3/8/8/8/8/8/8/N3K3 w - - 0 1");
     Board board_edge("4k3/8/8/8/8/8/8/1N2K3 w - - 0 1");
 
-    int score_corner = search.evaluate(board_corner);
-    int score_edge = search.evaluate(board_edge);
+    int score_corner = Search::evaluate(board_corner);
+    int score_edge = Search::evaluate(board_edge);
 
     EXPECT_GT(score_edge, score_corner);
 }
@@ -124,8 +124,8 @@ TEST_F(SearchTest, BishopMobilityMatters) {
     Board board_open("4k3/8/8/8/8/8/2P1K3/2B5 w - - 0 1");
     Board board_blocked("4k3/8/8/8/8/8/2P1K3/3B4 w - - 0 1");
 
-    int score_open = search.evaluate(board_open);
-    int score_blocked = search.evaluate(board_blocked);
+    int score_open = Search::evaluate(board_open);
+    int score_blocked = Search::evaluate(board_blocked);
 
     EXPECT_GT(score_open, score_blocked);
 }
@@ -135,8 +135,8 @@ TEST_F(SearchTest, RookMobilityMatters) {
     Board board_open("4k3/8/8/4P3/3R4/8/8/4K3 w - - 0 1");
     Board board_blocked("4k3/8/8/3P4/3R4/8/8/4K3 w - - 0 1");
 
-    int score_open = search.evaluate(board_open);
-    int score_blocked = search.evaluate(board_blocked);
+    int score_open = Search::evaluate(board_open);
+    int score_blocked = Search::evaluate(board_blocked);
 
     EXPECT_GT(score_open, score_blocked);
 }
@@ -147,8 +147,8 @@ TEST_F(SearchTest, PassedPawnBonus) {
     // White pawn blocked by enemy pawn on same file
     Board board_blocked("4k3/3p4/8/8/3P4/8/8/4K3 w - - 0 1");
 
-    int score_passed = search.evaluate(board_passed);
-    int score_blocked = search.evaluate(board_blocked);
+    int score_passed = Search::evaluate(board_passed);
+    int score_blocked = Search::evaluate(board_blocked);
 
     EXPECT_GT(score_passed, score_blocked);
 }
@@ -158,8 +158,8 @@ TEST_F(SearchTest, AdvancedPassedPawnWorthMore) {
     Board board_advanced("4k3/8/3P4/8/8/8/8/4K3 w - - 0 1");
     Board board_back("4k3/8/8/8/8/3P4/8/4K3 w - - 0 1");
 
-    int score_advanced = search.evaluate(board_advanced);
-    int score_back = search.evaluate(board_back);
+    int score_advanced = Search::evaluate(board_advanced);
+    int score_back = Search::evaluate(board_back);
 
     EXPECT_GT(score_advanced, score_back);
 }
@@ -169,8 +169,8 @@ TEST_F(SearchTest, PawnBlockedByAdjacentFilePawn) {
     Board board_not_passed("4k3/2p5/8/8/3P4/8/8/4K3 w - - 0 1");
     Board board_passed("4k3/8/8/8/3P4/8/8/4K3 w - - 0 1");
 
-    int score_not_passed = search.evaluate(board_not_passed);
-    int score_passed = search.evaluate(board_passed);
+    int score_not_passed = Search::evaluate(board_not_passed);
+    int score_passed = Search::evaluate(board_passed);
 
     EXPECT_GT(score_passed, score_not_passed);
 }
@@ -180,8 +180,8 @@ TEST_F(SearchTest, KingInCenterBadEarlyGame) {
     Board board_center("r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     Board board_castled("r1bqkbnr/pppppppp/2n5/8/8/8/PPPPPPPP/RNBQBRKN b kq - 0 1");
 
-    int score_center = search.evaluate(board_center);
-    int score_castled = search.evaluate(board_castled);
+    int score_center = Search::evaluate(board_center);
+    int score_castled = Search::evaluate(board_castled);
 
     EXPECT_GT(score_castled, score_center);
 }
@@ -191,8 +191,8 @@ TEST_F(SearchTest, KingCentralizationGoodEndgame) {
     Board board_center("4k3/8/8/8/3K4/8/8/8 w - - 0 1");
     Board board_corner("4k3/8/8/8/8/8/8/K7 w - - 0 1");
 
-    int score_center = search.evaluate(board_center);
-    int score_corner = search.evaluate(board_corner);
+    int score_center = Search::evaluate(board_center);
+    int score_corner = Search::evaluate(board_corner);
 
     EXPECT_GT(score_center, score_corner);
 }
@@ -201,14 +201,14 @@ TEST_F(SearchTest, StartingPositionIsEarlyPhase) {
     Board board;
     // Starting position should be evaluated with early game weights
     // This is implicit - just checking eval doesn't crash
-    int score = search.evaluate(board);
+    int score = Search::evaluate(board);
     EXPECT_EQ(score, 0);  // Symmetric position
 }
 
 TEST_F(SearchTest, EndgamePhaseDetection) {
     // Just kings - should be endgame phase
     Board board("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
-    int score = search.evaluate(board);
+    int score = Search::evaluate(board);
     // Score should be 0 (equal material), just verifying no crash
     EXPECT_EQ(score, 0);
 }
@@ -218,8 +218,8 @@ TEST_F(SearchTest, EarlyQueenDevelopmentPunished) {
     Board board_aggressive("rnbqkbnr/pppppppp/8/7Q/8/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1");
     Board board_home("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-    int score_aggressive = search.evaluate(board_aggressive);
-    int score_home = search.evaluate(board_home);
+    int score_aggressive = Search::evaluate(board_aggressive);
+    int score_home = Search::evaluate(board_home);
 
     EXPECT_GT(score_home, score_aggressive);
 }
