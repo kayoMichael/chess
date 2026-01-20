@@ -46,8 +46,8 @@ void uciLoop() {
             }
         }
         else if (cmd == "go") {
-            // fixed depth 5 if none given.
-            int depth = 5;
+            // fixed depth 7 if none given.
+            int depth = 7;
             std::string token;
             while (ss >> token) {
                 if (token == "depth") ss >> depth;

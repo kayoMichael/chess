@@ -51,8 +51,9 @@ Move Search::findBestMove(Board& board, int depth) {
 }
 
 int Search::alphaBeta(Board &board, int depth, int alpha, int beta) {
+    if (board.isChecked(board.getColor())) depth++; // Check Extension to keep going
     if (depth == 0) {
-        return evaluate(board);
+        return quiescence(board, alpha, beta);
     }
     std::vector<Move> moves = Generator::generateLegalMoves(board);
     orderMoves(moves, board);
@@ -90,6 +91,43 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta) {
         if (beta <= alpha) break;
     }
     return minValue;
+}
+
+int Search::quiescence(Board& board, int alpha, int beta) {
+    const int stand_pat = evaluate(board);
+    Color side = board.getColor();
+
+    if (side == Color::White) {
+        if (stand_pat >= beta)
+            return beta;
+        alpha = std::max(alpha, stand_pat);
+    } else {
+        if (stand_pat <= alpha)
+            return alpha;
+        beta = std::min(beta, stand_pat);
+    }
+
+    for (const std::vector<Move> moves = Generator::generateLegalMoves(board); const Move& move : moves) {
+        // Extend Search only for captures
+        if (board.at(move.destination.r, move.destination.c).kind == PieceKind::None)
+            continue;
+
+        MoveUndo undo = board.makeMove(move, false);
+        int score = quiescence(board, alpha, beta);
+        board.undoMove(undo);
+
+        if (side == Color::White) {
+            alpha = std::max(alpha, score);
+            if (alpha >= beta)
+                break;
+        } else {
+            beta = std::min(beta, score);
+            if (beta <= alpha)
+                break;
+        }
+    }
+
+    return side == Color::White ? alpha : beta;
 }
 
 int Search::computePhase(const Board& board) {
