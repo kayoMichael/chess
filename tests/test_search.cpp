@@ -46,19 +46,19 @@ TEST_F(SearchTest, BlackCapturesHangingQueen) {
 
 TEST_F(SearchTest, EvaluateStartingPosition) {
     Board board;
-    int score = search.evaluate(board);
+    int score = Search::evaluate(board);
     EXPECT_EQ(score, 0);
 }
 
 TEST_F(SearchTest, EvaluateWhiteUpQueen) {
     Board board("4k3/8/8/8/8/8/8/4K2Q w - - 0 1");
-    int score = search.evaluate(board);
+    int score = Search::evaluate(board);
     EXPECT_GT(score, 800);
 }
 
 TEST_F(SearchTest, EvaluateBlackUpQueen) {
     Board board("4k2q/8/8/8/8/8/8/4K3 w - - 0 1");
-    int score = search.evaluate(board);
+    int score = Search::evaluate(board);
     EXPECT_LT(score, -800);
 }
 

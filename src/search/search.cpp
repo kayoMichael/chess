@@ -8,6 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <ranges>
 
 
 Move Search::findBestMove(Board& board, int depth) {
@@ -54,6 +55,7 @@ int Search::alphaBeta(Board &board, int depth, int alpha, int beta) {
         return evaluate(board);
     }
     std::vector<Move> moves = Generator::generateLegalMoves(board);
+    orderMoves(moves, board);
     const Color side = board.getColor();
     if (moves.empty() && board.isChecked(side)) {
         // Checkmate - side to move loses
@@ -104,6 +106,25 @@ int Search::computePhase(const Board& board) {
     }
 
     return phase;
+}
+
+// Most Valuable Victim - Least Valuable Attacker. Assumes Only valid moves
+int Search::mvvLva(const Move& move, const Board& board) {
+    const Piece piece = board.at(move.destination.r, move.destination.c);
+    if (piece.kind == PieceKind::None) return 0;
+
+    int victim = pieceValue(piece.kind);
+    int attacker = pieceValue(board.at(move.current.r, move.current.c).kind);
+
+    // Higher score = look at first
+    // Capturing high value with low value piece = best
+    return victim * 10 - attacker;
+}
+
+void Search::orderMoves(std::vector<Move>& moves, const Board& board) {
+    std::ranges::sort(moves, [&](const Move& a, const Move& b) {
+        return mvvLva(a, board) > mvvLva(b, board);
+    });
 }
 
 int Search::evaluate(const Board &board) {
