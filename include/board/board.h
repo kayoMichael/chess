@@ -2,6 +2,7 @@
 
 #include <string>
 #include <optional>
+#include <vector>
 
 #include "move.h"
 #include "piece_type.h"
@@ -30,6 +31,51 @@ public:
     [[nodiscard]] Piece at(int r, int c) const;
     [[nodiscard]] std::optional<Move> parseUCI(const std::string& uci) const;
     static std::string toUCI(const Move& move);
+    [[nodiscard]] std::vector<Piece> pieces() const;
+    template <typename Predicate>
+    bool rayScan(
+        const int startR,
+        const int startC,
+        const int dr,
+        const int dc,
+        Predicate pred
+    ) const {
+        int r = startR + dr;
+        int c = startC + dc;
+
+        while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            const auto& p = at(r, c);
+
+            if (pred(p)) return true;
+
+            r += dr;
+            c += dc;
+        }
+        return false;
+    };
+    template <typename Predicate>
+    int rayScanCount(
+        const int startR,
+        const int startC,
+        const int dr,
+        const int dc,
+        Predicate pred
+    ) const {
+        int r = startR + dr;
+        int c = startC + dc;
+        int count = 0;
+
+        while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            const auto& p = at(r, c);
+
+            if (pred(p)) return count;
+
+            r += dr;
+            c += dc;
+            count++;
+        }
+        return count;
+    };
 
 private:
     Piece board[8][8]{};
