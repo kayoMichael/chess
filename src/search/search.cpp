@@ -4,8 +4,11 @@
 #include "move.h"
 #include "generator/generator.h"
 #include "piece_type.h"
+
+#include <vector>
 #include <algorithm>
-#include <sys/stat.h>
+#include <cmath>
+
 
 Move Search::findBestMove(Board& board, int depth) {
     int alpha = -INF;

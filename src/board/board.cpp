@@ -6,9 +6,9 @@
 #include <cstring>
 #include <cctype>
 #include <stdexcept>
-#include <cctype>
-#include <stdexcept>
-#include <cmath>
+#include <vector>
+#include <cstdlib>
+#include <cstring>
 
 #include "movement_const.h"
 
