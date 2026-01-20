@@ -9,6 +9,7 @@
 #include <cctype>
 #include <stdexcept>
 #include <cmath>
+#include <vector>
 
 #include "movement_const.h"
 
