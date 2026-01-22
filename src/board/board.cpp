@@ -475,7 +475,11 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
 
     if (!hypothetical) {
         undo.move = move;
-        undo.captured = at(move.destination.r, move.destination.c);
+        if (move.type == MoveType::EnPassant) {
+            undo.captured = at(move.current.r, move.destination.c);  // Captured pawn is beside us
+        } else {
+            undo.captured = at(move.destination.r, move.destination.c);
+        }
         undo.movedPiece = current_piece;
         undo.whiteKingMoved = whiteKingMoved;
         undo.whiteRookKingsideMoved = whiteRookKingsideMoved;
@@ -560,7 +564,7 @@ void Board::undoMove(const MoveUndo &undo) {
             break;
         }
         default:
-            board[undo.move.current.r][undo.move.current.c] = board[undo.move.destination.r][undo.move.destination.c];
+            board[undo.move.current.r][undo.move.current.c] = undo.movedPiece;
             board[undo.move.destination.r][undo.move.destination.c] = undo.captured;
             break;
     }
@@ -572,6 +576,7 @@ void Board::undoMove(const MoveUndo &undo) {
     blackKingMoved = undo.blackKingMoved;
     blackRookKingsideMoved = undo.blackRookKingsideMoved;
     blackRookQueensideMoved = undo.blackRookQueensideMoved;
+    enPassantTarget = undo.enPassantTarget;
     side = (side == Color::White) ? Color::Black : Color::White;
 }
 

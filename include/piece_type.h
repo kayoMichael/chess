@@ -26,7 +26,7 @@ constexpr int knightPST_EARLY[8][8] = {
     {-30,   0,   5,  10,  10,   5,   0, -30},
     {-30,   0,  15,   5,   5,  15,   0, -30},  // c3/f3 good, d3/e3 okay but impossible to get to unless moving the knight twice.
     {-40, -20,   0,   5,   5,   0, -20, -40},  // d2/e2 fine
-    {-50, -40, -30, -30, -30, -30, -40, -50},
+    {-50,  -5, -10, -10, -10, -10,  -5, -50},
 };
 
 constexpr int knightPST_LATE[8][8] = {

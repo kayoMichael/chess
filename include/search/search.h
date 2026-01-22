@@ -11,5 +11,5 @@ private:
     static int computePhase(const Board& board);
     static int mvvLva(const Move& move, const Board& board);
     static void orderMoves(std::vector<Move>& moves, const Board& board);
-    static int quiescence(Board& board, int alpha, int beta);
+    static int quiescence(Board& board, int alpha, int beta, int qDepth = 0);
 };

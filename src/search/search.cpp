@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <ranges>
+#include <iostream>
 
 
 Move Search::findBestMove(Board& board, const int depth) {
@@ -54,9 +55,6 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
     if (depth == 0) { // Don't stop if the board is still violent.
         return quiescence(board, alpha, beta);
     }
-
-    bool inCheck = board.isChecked(board.getColor());
-    int newDepth = depth - 1 + (inCheck ? 1 : 0); // Extend if check
     std::vector<Move> moves = Generator::generateLegalMoves(board);
     orderMoves(moves, board);
     const Color side = board.getColor();
@@ -75,6 +73,8 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
         int maxValue = -INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
+            bool inCheck = board.isChecked(board.getColor());
+            int newDepth = depth - 1 + (inCheck ? 1 : 0); // Extend if check
             int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
             board.undoMove(undo);
             alpha = std::max(alpha, score);
@@ -86,6 +86,8 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
     int minValue = INF;
     for (auto& move : moves) {
         MoveUndo undo = board.makeMove(move,false);
+        bool inCheck = board.isChecked(board.getColor());
+        int newDepth = depth - 1 + (inCheck ? 1 : 0); // Extend if check
         int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
         board.undoMove(undo);
         minValue = std::min(minValue, score);
@@ -95,38 +97,36 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
     return minValue;
 }
 
-int Search::quiescence(Board& board, int alpha, int beta) {
-    const int stand_pat = evaluate(board);
+int Search::quiescence(Board& board, int alpha, int beta, int qDepth) {
+    int stand_pat = evaluate(board);
     Color side = board.getColor();
 
     if (side == Color::White) {
-        if (stand_pat >= beta)
-            return beta;
-        alpha = std::max(alpha, stand_pat);
+        if (stand_pat >= beta) return beta;
+        if (stand_pat > alpha) alpha = stand_pat;
     } else {
-        if (stand_pat <= alpha)
-            return alpha;
-        beta = std::min(beta, stand_pat);
+        if (stand_pat <= alpha) return alpha;
+        if (stand_pat < beta) beta = stand_pat;
     }
     std::vector<Move> moves = Generator::generateLegalMoves(board);
     orderMoves(moves, board);
+
+    int captureCount = 0;
     for (const Move& move : moves) {
-        // Extend Search only for captures
         if (board.at(move.destination.r, move.destination.c).kind == PieceKind::None)
             continue;
+        captureCount++;
 
         MoveUndo undo = board.makeMove(move, false);
-        int score = quiescence(board, alpha, beta);
+        int score = quiescence(board, alpha, beta, qDepth + 1);
         board.undoMove(undo);
 
         if (side == Color::White) {
-            alpha = std::max(alpha, score);
-            if (alpha >= beta)
-                break;
+            if (score > alpha) alpha = score;
+            if (alpha >= beta) return beta;
         } else {
-            beta = std::min(beta, score);
-            if (beta <= alpha)
-                break;
+            if (score < beta) beta = score;
+            if (beta <= alpha) return alpha;
         }
     }
 
@@ -174,7 +174,7 @@ int Search::evaluate(const Board &board) {
     double phase = computePhase(board) / static_cast<double>(MAX_PHASE);
     phase = std::clamp(phase, 0.0, 1.0);
 
-    auto enemyPieceAheadOnFile = [&](const int r, const int file, const int dr, const int dc, const Color color, PieceKind piece) {
+    auto enemyPieceAheadOnFile = [&](const int r, const int file, const int dr, const int dc, const Color color, const PieceKind piece) {
         return board.rayScan(r, file, dr, dc,
             [&](const Piece& p) {
                 return p.kind == piece && p.color != color;
@@ -182,7 +182,7 @@ int Search::evaluate(const Board &board) {
         );
     };
 
-    auto allowedSquares = [&](const int r, const int file, const int dr, const int dc, const Color color) {
+    auto allowedSquares = [&](const int r, const int file, const int dr, const int dc) {
         return board.rayScanCount(r, file, dr, dc,
             [&](const Piece& p) {
                 return p.kind != PieceKind::None;
@@ -219,10 +219,10 @@ int Search::evaluate(const Board &board) {
                         bishopPST_EARLY[pst_row][pst_col] * phase +
                         bishopPST_LATE[pst_row][pst_col] * (1.0 - phase)
                     ));
-                    const int left_dig = allowedSquares(r, c, dr, -1, color);
-                    const int right_dig = allowedSquares(r, c, dr, 1, color);
-                    const int left_back_dig = allowedSquares(r, c, -dr, -1, color);
-                    const int right_back_dig = allowedSquares(r, c, -dr, 1, color);
+                    const int left_dig = allowedSquares(r, c, dr, -1);
+                    const int right_dig = allowedSquares(r, c, dr, 1);
+                    const int left_back_dig = allowedSquares(r, c, -dr, -1);
+                    const int right_back_dig = allowedSquares(r, c, -dr, 1);
 
                     pstScore += static_cast<int>(std::round((left_dig + right_dig + left_back_dig * 0.5 + right_back_dig * 0.5) * 2 * phase));
                     break;
@@ -233,10 +233,10 @@ int Search::evaluate(const Board &board) {
                         rookPST_EARLY[pst_row][pst_col] * phase +
                         rookPST_LATE[pst_row][pst_col] * (1.0 - phase)
                     ));
-                    const int forward = allowedSquares(r, c, dr, 0, color);
-                    const int backward = allowedSquares(r, c, -1, 0, color);
-                    const int left = allowedSquares(r, c, 0, -1, color);
-                    const int right = allowedSquares(r, c, 0, 1, color);
+                    const int forward = allowedSquares(r, c, dr, 0);
+                    const int backward = allowedSquares(r, c, -1, 0);
+                    const int left = allowedSquares(r, c, 0, -1);
+                    const int right = allowedSquares(r, c, 0, 1);
                     pstScore += static_cast<int>(std::round((forward + backward + left * 0.5 + right * 0.5) * 2 * phase));
                     break;
                 }
