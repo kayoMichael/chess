@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <cmath>
 #include <ranges>
-#include <iostream>
 
 
 Move Search::findBestMove(Board& board, const int depth) {

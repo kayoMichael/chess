@@ -38,7 +38,6 @@ TEST_F(ZobristTest, MoveAndUndoRestoresHash) {
 TEST_F(ZobristTest, SamePositionDifferentPathSameHash) {
     // Reach same position via different move orders
     Board board1;
-    Board board2;
 
     // Board 1: e4, e5, Nf3
     Move e4 = board1.parseUCI("e2e4").value();
@@ -48,8 +47,6 @@ TEST_F(ZobristTest, SamePositionDifferentPathSameHash) {
     Move nf3 = board1.parseUCI("g1f3").value();
     board1.makeMove(nf3, false);
 
-    // Board 2: Nf3, e5, e4... wait this changes move order for black too
-    // Better test: use FEN
     Board board3("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
 
     EXPECT_EQ(board1.getHash(), board3.getHash());
