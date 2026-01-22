@@ -14,6 +14,8 @@ public:
     void init();
     void print() const;
     void loadFEN(const std::string& fen);
+    uint64_t getHash() const { return hash; }
+    void computeHash();
     [[nodiscard]] std::string toFEN() const;
     bool whiteKingMoved = false;
     bool blackKingMoved = false;
@@ -78,6 +80,7 @@ public:
     };
 
 private:
+    uint64_t hash = 0;
     Piece board[8][8]{};
     Color side = Color::White;
     void movePiece(const Square& from, const Square& to);

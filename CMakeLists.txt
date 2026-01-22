@@ -30,6 +30,7 @@ add_executable(chess_tests
         tests/test_rook.cpp
         tests/test_knight.cpp
         tests/test_bishop.cpp
+        tests/test_zobrist.cpp
 )
 target_link_libraries(chess_tests chess_lib GTest::gtest_main)
 

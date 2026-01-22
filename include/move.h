@@ -27,6 +27,7 @@ struct MoveUndo {
     Piece captured{};
     Piece movedPiece{};
     std::optional<Square> enPassantTarget = std::nullopt;
+    uint64_t prevHash{};
 
     bool whiteKingMoved{};
     bool blackKingMoved{};

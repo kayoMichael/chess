@@ -1,4 +1,5 @@
 #include "board/board.h"
+#include "search/zobrist.h"
 
 #include <iostream>
 #include <cassert>
@@ -14,10 +15,12 @@
 
 Board::Board() {
     init();
+    computeHash();
 }
 
 Board::Board(const std::string& fen) {
     loadFEN(fen);
+    computeHash();
 }
 
 void Board::init() {
@@ -235,8 +238,8 @@ std::string Board::toUCI(const Move& move) {
     if (move.type == MoveType::Promotion) {
         char promo;
         switch (move.promotion) {
-            case PieceKind::Queen:  promo = 'q'; break;
-            case PieceKind::Rook:   promo = 'r'; break;
+            case PieceKind::Queen: promo = 'q'; break;
+            case PieceKind::Rook: promo = 'r'; break;
             case PieceKind::Bishop: promo = 'b'; break;
             case PieceKind::Knight: promo = 'n'; break;
             default: promo = '?';
@@ -270,12 +273,12 @@ PieceKind Board::charToKind(char c) {
 char Board::kindToChar(PieceKind kind, Color color) {
     char c;
     switch (kind) {
-        case PieceKind::Pawn:   c = 'p'; break;
+        case PieceKind::Pawn: c = 'p'; break;
         case PieceKind::Knight: c = 'n'; break;
         case PieceKind::Bishop: c = 'b'; break;
-        case PieceKind::Rook:   c = 'r'; break;
-        case PieceKind::Queen:  c = 'q'; break;
-        case PieceKind::King:   c = 'k'; break;
+        case PieceKind::Rook: c = 'r'; break;
+        case PieceKind::Queen: c = 'q'; break;
+        case PieceKind::King: c = 'k'; break;
         default: return '?';
     }
     return color == Color::White ? static_cast<char>(std::toupper(c)) : c;
@@ -339,6 +342,31 @@ bool Board::validate(const Move& move) {
     }
 
     return true;
+}
+
+void Board::computeHash() {
+    hash = 0;
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            Piece p = at(r, c);
+            if (p.kind != PieceKind::None) {
+                hash ^= Zobrist::pieceSquare[Zobrist::colorIndex(p.color)]
+                                            [Zobrist::pieceIndex(p.kind)]
+                                            [Zobrist::squareIndex(r, c)];
+            }
+        }
+    }
+
+    if (side == Color::Black) hash ^= Zobrist::sideToMove;
+
+    if (!whiteKingMoved && !whiteRookKingsideMoved) hash ^= Zobrist::castling[0];
+    if (!whiteKingMoved && !whiteRookQueensideMoved) hash ^= Zobrist::castling[1];
+    if (!blackKingMoved && !blackRookKingsideMoved) hash ^= Zobrist::castling[2];
+    if (!blackKingMoved && !blackRookQueensideMoved) hash ^= Zobrist::castling[3];
+
+    if (enPassantTarget.has_value()) {
+        hash ^= Zobrist::enPassant[enPassantTarget->c];
+    }
 }
 
 bool Board::isChecked(const Color kingColor) const {
@@ -472,7 +500,7 @@ std::vector<Piece> Board::pieces() const {
 MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
     MoveUndo undo;
     Piece current_piece = at(move.current.r, move.current.c);
-
+    Piece captured_piece = at(move.destination.r, move.destination.c);
     if (!hypothetical) {
         undo.move = move;
         if (move.type == MoveType::EnPassant) {
@@ -480,6 +508,7 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
         } else {
             undo.captured = at(move.destination.r, move.destination.c);
         }
+        undo.prevHash = hash;
         undo.movedPiece = current_piece;
         undo.whiteKingMoved = whiteKingMoved;
         undo.whiteRookKingsideMoved = whiteRookKingsideMoved;
@@ -488,8 +517,48 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
         undo.blackRookKingsideMoved = blackRookKingsideMoved;
         undo.blackRookQueensideMoved = blackRookQueensideMoved;
         undo.enPassantTarget = enPassantTarget;
-    }
 
+        // Zobrist Hashing
+        int colorIdx = Zobrist::colorIndex(current_piece.color);
+        int pieceIdx = Zobrist::pieceIndex(current_piece.kind);
+        int fromSq = Zobrist::squareIndex(move.current.r, move.current.c);
+        int toSq = Zobrist::squareIndex(move.destination.r, move.destination.c);
+
+        // Remove piece from origin
+        hash ^= Zobrist::pieceSquare[colorIdx][pieceIdx][fromSq];
+
+        // Handle en passant capture
+        if (move.type == MoveType::EnPassant) {
+            int epSq = Zobrist::squareIndex(move.current.r, move.destination.c);
+            hash ^= Zobrist::pieceSquare[1 - colorIdx][0][epSq];  // Remove enemy pawn
+        }
+        else if (captured_piece.kind != PieceKind::None) {
+            hash ^= Zobrist::pieceSquare[Zobrist::colorIndex(captured_piece.color)]
+                                        [Zobrist::pieceIndex(captured_piece.kind)]
+                                        [toSq];
+        }
+
+        // Add piece to destination
+        if (move.type == MoveType::Promotion) {
+            hash ^= Zobrist::pieceSquare[colorIdx][Zobrist::pieceIndex(move.promotion)][toSq];
+        } else {
+            hash ^= Zobrist::pieceSquare[colorIdx][pieceIdx][toSq];
+        }
+
+        // Handle castling rook
+        if (move.type == MoveType::Castle) {
+            int row = move.current.r;
+            bool kingside = move.destination.c > move.current.c;
+            int rookFrom = Zobrist::squareIndex(row, kingside ? 7 : 0);
+            int rookTo = Zobrist::squareIndex(row, kingside ? 5 : 3);
+            int rookIdx = Zobrist::pieceIndex(PieceKind::Rook);
+            hash ^= Zobrist::pieceSquare[colorIdx][rookIdx][rookFrom];
+            hash ^= Zobrist::pieceSquare[colorIdx][rookIdx][rookTo];
+        }
+        if (enPassantTarget.has_value()) {
+            hash ^= Zobrist::enPassant[enPassantTarget->c]; // remove old EP
+        }
+    }
     enPassantTarget = std::nullopt;
 
     switch (move.type) {
@@ -497,7 +566,7 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
             movePiece(move.current, move.destination);
             if (current_piece.kind == PieceKind::Pawn) {
                 int distance = move.destination.r - move.current.r;
-                if (distance == 2 || distance == -2) {
+                if ((distance == 2 || distance == -2)) {
                     // En passant target is the square the pawn skipped over
                     enPassantTarget = Square(move.current.r + distance / 2, move.current.c);
                 }
@@ -534,6 +603,32 @@ MoveUndo Board::makeMove(const Move& move, const bool hypothetical) {
     updateCastlingRights(current_piece, move);
 
     if (!hypothetical) {
+        // Castling rights that were just lost
+        if (!undo.whiteKingMoved && whiteKingMoved) {
+            hash ^= Zobrist::castling[0];
+            hash ^= Zobrist::castling[1];
+        }
+        if (!undo.blackKingMoved && blackKingMoved) {
+            hash ^= Zobrist::castling[2];
+            hash ^= Zobrist::castling[3];
+        }
+        if (!undo.whiteRookKingsideMoved && whiteRookKingsideMoved) {
+            hash ^= Zobrist::castling[0];
+        }
+        if (!undo.whiteRookQueensideMoved && whiteRookQueensideMoved) {
+            hash ^= Zobrist::castling[1];
+        }
+        if (!undo.blackRookKingsideMoved && blackRookKingsideMoved) {
+            hash ^= Zobrist::castling[2];
+        }
+        if (!undo.blackRookQueensideMoved && blackRookQueensideMoved) {
+            hash ^= Zobrist::castling[3];
+        }
+
+        if (enPassantTarget.has_value()) {
+            hash ^= Zobrist::enPassant[enPassantTarget->c];
+        }
+        hash ^= Zobrist::sideToMove;
         side = (side == Color::White) ? Color::Black : Color::White;
     }
     return undo;
@@ -569,7 +664,7 @@ void Board::undoMove(const MoveUndo &undo) {
             break;
     }
 
-
+    hash = undo.prevHash;
     whiteKingMoved = undo.whiteKingMoved;
     whiteRookKingsideMoved = undo.whiteRookKingsideMoved;
     whiteRookQueensideMoved = undo.whiteRookQueensideMoved;
