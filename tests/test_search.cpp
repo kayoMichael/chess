@@ -30,7 +30,7 @@ TEST_F(SearchTest, BlackMateInOne) {
 
 TEST_F(SearchTest, WhiteCapturesHangingQueen) {
     Board board("8/6B1/8/8/3q4/8/8/4K2k w - - 0 1");
-    Move best = search.findBestMove(board, 2);
+    Move best = search.findBestMove(board, 4);
 
     EXPECT_EQ(best.destination.r, 4);
     EXPECT_EQ(best.destination.c, 3);

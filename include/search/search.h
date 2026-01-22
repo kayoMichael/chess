@@ -5,7 +5,8 @@
 
 class Search {
 public:
-    Search() : tt(64) {}
+    Search() : tt(64) {};
+    int rootDepth{};
     Move findBestMove(Board& board, int depth);
     static int evaluate(const Board& board);
 private:

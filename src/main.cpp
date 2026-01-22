@@ -2,6 +2,7 @@
 #include <sstream>
 #include "board/board.h"
 #include "search/search.h"
+#include "search/zobrist.h"
 
 void uciLoop() {
     Board board;
@@ -65,6 +66,7 @@ void uciLoop() {
 }
 
 int main() {
+    Zobrist::init();
     uciLoop();
     return 0;
 }

@@ -15,6 +15,7 @@
 Move Search::findBestMove(Board& board, const int depth) {
     int alpha = -INF;
     int beta = INF;
+    rootDepth = depth;
     const std::vector<Move> moves = Generator::generateLegalMoves(board);
 
     Move bestMove;
@@ -52,9 +53,14 @@ Move Search::findBestMove(Board& board, const int depth) {
 }
 
 int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
+    const int originalAlpha = alpha;
+    const int originalBeta = beta;
+    const int absDepth = rootDepth - ply;
+
     if (depth == 0) { // Don't stop if the board is still violent.
         return quiescence(board, alpha, beta);
     }
+
     std::vector<Move> moves = Generator::generateLegalMoves(board);
     orderMoves(moves, board);
     const Color side = board.getColor();
@@ -69,8 +75,19 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
         return 0;
     }
 
+    if (absDepth >= 0) {
+        TTEntry* entry = tt.probe(board.getHash());
+        if (entry && entry->depth >= absDepth) {
+            if (entry->flag == EXACT) return entry->score;
+            if (entry->flag == LOWER_BOUND) alpha = std::max(alpha, entry->score);
+            if (entry->flag == UPPER_BOUND) beta = std::min(beta, entry->score);
+            if (alpha >= beta) return alpha;
+        }
+    }
+
+    int bestScore;
     if (side == Color::White) {
-        int maxValue = -INF;
+        bestScore = -INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
             bool inCheck = board.isChecked(board.getColor());
@@ -78,23 +95,44 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
             int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
             board.undoMove(undo);
             alpha = std::max(alpha, score);
-            maxValue = std::max(maxValue, score);
+            bestScore = std::max(bestScore, score);
             if (beta <= alpha) break;
         }
-        return maxValue;
+
+        // White is maximizing
+        uint8_t flag;
+        if (bestScore <= originalAlpha) {
+            flag = UPPER_BOUND;  // Never improved alpha, this is the best we can do (or worse)
+        } else if (bestScore >= originalBeta) {
+            flag = LOWER_BOUND;  // Score is at least this good (caused beta cutoff)
+        } else {
+           flag = EXACT;
+        }
+        tt.store(board.getHash(), bestScore, absDepth, flag);
+    } else {
+        bestScore = INF;
+        for (auto& move : moves) {
+            MoveUndo undo = board.makeMove(move,false);
+            bool inCheck = board.isChecked(board.getColor());
+            int newDepth = depth - 1 + (inCheck ? 1 : 0); // Extend if check
+            int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
+            board.undoMove(undo);
+            bestScore = std::min(bestScore, score);
+            beta = std::min(beta, score);
+            if (beta <= alpha) break;
+        }
+        // Black is minimizing
+        uint8_t flag;
+        if (bestScore >= originalBeta) {
+            flag = LOWER_BOUND;  // Couldn't beat beta, score is at least this
+        } else if (bestScore <= originalAlpha) {
+            flag = UPPER_BOUND;  // Beat alpha (bad for white), score is at most this
+        } else {
+            flag = EXACT;
+        }
+        tt.store(board.getHash(), bestScore, absDepth, flag);
     }
-    int minValue = INF;
-    for (auto& move : moves) {
-        MoveUndo undo = board.makeMove(move,false);
-        bool inCheck = board.isChecked(board.getColor());
-        int newDepth = depth - 1 + (inCheck ? 1 : 0); // Extend if check
-        int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
-        board.undoMove(undo);
-        minValue = std::min(minValue, score);
-        beta = std::min(beta, score);
-        if (beta <= alpha) break;
-    }
-    return minValue;
+    return bestScore;
 }
 
 int Search::quiescence(Board& board, int alpha, int beta, int qDepth) {

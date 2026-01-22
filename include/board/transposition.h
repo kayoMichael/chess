@@ -4,10 +4,10 @@
 #include <vector>
 
 struct TTEntry {
-    uint64_t hash;
-    int score;
-    int depth;
-    uint8_t flag;
+    uint64_t hash = 0;
+    int score = 0;
+    int depth = -999;
+    uint8_t flag = 0;
 };
 
 enum TTFlag { EXACT, LOWER_BOUND, UPPER_BOUND };
