@@ -6,6 +6,11 @@
 class Search {
 public:
     Search() : tt(64) {};
+    void clearTT() { tt.clear(); };
+    void resetTTStats() { tt.resetStats(); };
+    std::tuple<uint64_t, uint64_t, uint64_t> getTTStats() {
+        return {tt.hits, tt.misses, tt.stores};
+    };
     int rootDepth{};
     Move findBestMove(Board& board, int depth);
     static int evaluate(const Board& board);

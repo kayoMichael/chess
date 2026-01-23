@@ -55,10 +55,17 @@ Move Search::findBestMove(Board& board, const int depth) {
 int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
     const int originalAlpha = alpha;
     const int originalBeta = beta;
-    const int absDepth = rootDepth - ply;
 
     if (depth == 0) { // Don't stop if the board is still violent.
         return quiescence(board, alpha, beta);
+    }
+
+    TTEntry* entry = tt.probe(board.getHash());
+    if (entry && entry->depth >= depth) {
+        if (entry->flag == EXACT) return entry->score;
+        if (entry->flag == LOWER_BOUND) alpha = std::max(alpha, entry->score);
+        if (entry->flag == UPPER_BOUND) beta  = std::min(beta, entry->score);
+        if (alpha >= beta) return entry->score; // or alpha; see note below
     }
 
     std::vector<Move> moves = Generator::generateLegalMoves(board);
@@ -73,16 +80,6 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
     } else if (moves.empty()) {
         //stalemate
         return 0;
-    }
-
-    if (absDepth >= 0) {
-        TTEntry* entry = tt.probe(board.getHash());
-        if (entry && entry->depth >= absDepth) {
-            if (entry->flag == EXACT) return entry->score;
-            if (entry->flag == LOWER_BOUND) alpha = std::max(alpha, entry->score);
-            if (entry->flag == UPPER_BOUND) beta = std::min(beta, entry->score);
-            if (alpha >= beta) return alpha;
-        }
     }
 
     int bestScore;
@@ -108,7 +105,7 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
         } else {
            flag = EXACT;
         }
-        tt.store(board.getHash(), bestScore, absDepth, flag);
+        tt.store(board.getHash(), bestScore, depth, flag);
     } else {
         bestScore = INF;
         for (auto& move : moves) {
@@ -130,7 +127,7 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
         } else {
             flag = EXACT;
         }
-        tt.store(board.getHash(), bestScore, absDepth, flag);
+        tt.store(board.getHash(), bestScore, depth, flag);
     }
     return bestScore;
 }
@@ -138,6 +135,8 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
 int Search::quiescence(Board& board, int alpha, int beta, int qDepth) {
     int stand_pat = evaluate(board);
     Color side = board.getColor();
+
+    if (qDepth >= 8) return stand_pat;
 
     if (side == Color::White) {
         if (stand_pat >= beta) return beta;

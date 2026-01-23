@@ -109,17 +109,19 @@ TEST_F(SearchWithTTTest, TranspositionDetected) {
     Board board1;
     Board board2;
 
-    // Board 1: e4, e5, Nf3, Nc6
+    // Board 1: e4, e5, Nf3, Nc6, a3
     board1.makeMove(board1.parseUCI("e2e4").value(), false);
     board1.makeMove(board1.parseUCI("e7e5").value(), false);
     board1.makeMove(board1.parseUCI("g1f3").value(), false);
     board1.makeMove(board1.parseUCI("b8c6").value(), false);
+    board1.makeMove(board1.parseUCI("a2a3").value(), false);
 
-    // Board 2: Nf3, Nc6, e4, e5
+    // Board 2: Nf3, Nc6, e4, e5, a3
     board2.makeMove(board2.parseUCI("g1f3").value(), false);
     board2.makeMove(board2.parseUCI("b8c6").value(), false);
     board2.makeMove(board2.parseUCI("e2e4").value(), false);
     board2.makeMove(board2.parseUCI("e7e5").value(), false);
+    board2.makeMove(board2.parseUCI("a2a3").value(), false);
 
     // Same position should have same hash
     EXPECT_EQ(board1.getHash(), board2.getHash());

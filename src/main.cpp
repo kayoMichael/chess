@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <chrono>
 #include "board/board.h"
 #include "search/search.h"
 #include "search/zobrist.h"
@@ -24,6 +25,7 @@ void uciLoop() {
         }
         else if (cmd == "ucinewgame") {
             board = Board();
+            search.clearTT();
         }
         else if (cmd == "position") {
             std::string token;
@@ -47,15 +49,65 @@ void uciLoop() {
             }
         }
         else if (cmd == "go") {
-            // fixed depth 7 if none given.
-            int depth = 7;
+            int maxDepth = 10;
+            int moveTime = 0;
             std::string token;
+
             while (ss >> token) {
-                if (token == "depth") ss >> depth;
+                if (token == "depth") ss >> maxDepth;
+                else if (token == "movetime") ss >> moveTime;
             }
 
-            Move best = search.findBestMove(board, depth);
-            std::cout << "bestmove " << Board::toUCI(best) << "\n";
+            Move bestMove;
+            auto searchStart = std::chrono::high_resolution_clock::now();
+            for (int depth = 1; depth <= maxDepth; depth++) {
+                auto depthStart = std::chrono::high_resolution_clock::now();
+
+                bestMove = search.findBestMove(board, depth);
+
+                auto depthEnd = std::chrono::high_resolution_clock::now();
+                auto depthTime = std::chrono::duration_cast<std::chrono::milliseconds>(depthEnd - depthStart).count();
+                auto totalTime = std::chrono::duration_cast<std::chrono::milliseconds>(depthEnd - searchStart).count();
+
+                std::cout << "info depth " << depth
+                          << " time " << totalTime
+                          << " pv " << Board::toUCI(bestMove)
+                          << std::endl;
+
+                if (moveTime > 0 && totalTime >= moveTime) {
+                    std::cerr << "Time limit reached at depth " << depth << std::endl;
+                    break;
+                }
+
+                if (depthTime > 8000) {
+                    std::cerr << "Depth " << depth << " took " << depthTime << "ms, stopping" << std::endl;
+                    break;
+                }
+            }
+
+            std::cout << "bestmove " << Board::toUCI(bestMove) << "\n";
+        }
+        else if (cmd == "bench") {
+            Board benchBoard;
+            search.clearTT();
+            search.resetTTStats();
+
+            for (int depth = 1; depth <= 7; depth++) {
+
+                auto depthStart = std::chrono::high_resolution_clock::now();
+                Move best = search.findBestMove(benchBoard, depth);
+                auto depthEnd = std::chrono::high_resolution_clock::now();
+                auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(depthEnd - depthStart).count();
+
+                auto [hits, misses, stores] = search.getTTStats();
+                double hitRate = (hits + misses) > 0 ? (100.0 * hits / (hits + misses)) : 0;
+
+                std::cout << "Depth " << depth << ": " << ms << "ms"
+                          << ", best=" << Board::toUCI(best)
+                          << ", TT hits=" << hits << " misses=" << misses
+                          << " (" << hitRate << "%)"
+                          << ", stores=" << stores << "\n";
+            }
         }
         else if (cmd == "quit") {
             break;

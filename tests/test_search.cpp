@@ -2,10 +2,14 @@
 #include "board/board.h"
 #include "search/search.h"
 #include "generator/generator.h"
+#include "search/zobrist.h"
 
 class SearchTest : public ::testing::Test {
 protected:
     Search search;
+    void SetUp() override {
+        Zobrist::init();
+    }
 };
 
 TEST_F(SearchTest, WhiteMateInOne) {
