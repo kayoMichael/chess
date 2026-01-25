@@ -10,6 +10,14 @@ protected:
     void SetUp() override {
         Zobrist::init();
     }
+    Move const bestMove = Move(Square(0, 1), Square(1, 2));
+    static bool sameMove(const Move& a, const Move& b) {
+        return a.current.r == b.current.r &&
+               a.current.c == b.current.c &&
+               a.destination.r == b.destination.r &&
+               a.destination.c == b.destination.c;
+    }
+
 };
 
 // Basic TT functionality tests
@@ -17,13 +25,15 @@ TEST_F(TranspositionTableTest, StoreAndProbe) {
     TranspositionTable tt(16);
 
     uint64_t hash = 0x123456789ABCDEF0;
-    tt.store(hash, 100, 5, EXACT);
+    tt.store(hash, 100, 5, EXACT, bestMove);
 
     TTEntry* entry = tt.probe(hash);
     ASSERT_NE(entry, nullptr);
     EXPECT_EQ(entry->score, 100);
     EXPECT_EQ(entry->depth, 5);
     EXPECT_EQ(entry->flag, EXACT);
+    EXPECT_TRUE(sameMove(entry->bestMove, bestMove));
+
 }
 
 TEST_F(TranspositionTableTest, ProbeNonexistent) {
@@ -37,26 +47,29 @@ TEST_F(TranspositionTableTest, DeeperSearchReplaces) {
     TranspositionTable tt(16);
 
     uint64_t hash = 0x123456789ABCDEF0;
-    tt.store(hash, 50, 3, EXACT);
-    tt.store(hash, 100, 5, EXACT);  // Deeper search
+    tt.store(hash, 50, 3, EXACT, bestMove);
+    tt.store(hash, 100, 5, EXACT, bestMove);  // Deeper search
 
     TTEntry* entry = tt.probe(hash);
     ASSERT_NE(entry, nullptr);
     EXPECT_EQ(entry->score, 100);  // Should have the deeper result
     EXPECT_EQ(entry->depth, 5);
+    EXPECT_TRUE(sameMove(entry->bestMove, bestMove));
+
 }
 
 TEST_F(TranspositionTableTest, ShallowerSearchDoesNotReplace) {
     TranspositionTable tt(16);
 
     uint64_t hash = 0x123456789ABCDEF0;
-    tt.store(hash, 100, 5, EXACT);
-    tt.store(hash, 50, 3, EXACT);  // Shallower search
+    tt.store(hash, 100, 5, EXACT, bestMove);
+    tt.store(hash, 50, 3, EXACT, bestMove);  // Shallower search
 
     TTEntry* entry = tt.probe(hash);
     ASSERT_NE(entry, nullptr);
     EXPECT_EQ(entry->score, 100);  // Should keep the deeper result
     EXPECT_EQ(entry->depth, 5);
+    EXPECT_TRUE(sameMove(entry->bestMove, bestMove));
 }
 
 // Search with TT tests
@@ -66,6 +79,21 @@ protected:
 
     void SetUp() override {
         Zobrist::init();
+    }
+
+    static std::vector<Move> getLegalMoves(Board& board) {
+        std::vector<Move> legal;
+        Color side = board.getColor();
+
+        auto moves = Generator::generatePseudoMoves(board);
+        for (const auto& m : moves) {
+            MoveUndo undo = board.makeMove(m, false);
+            if (!board.isChecked(side)) {
+                legal.push_back(m);
+            }
+            board.undoMove(undo);
+        }
+        return legal;
     }
 };
 
@@ -140,7 +168,7 @@ TEST_F(SearchWithTTTest, MateInOneStillWorks) {
     Move best = search.findBestMove(board, 2);
 
     board.makeMove(best, false);
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
     EXPECT_TRUE(moves.empty());
     EXPECT_TRUE(board.isChecked(Color::Black));
 }
@@ -148,17 +176,17 @@ TEST_F(SearchWithTTTest, MateInOneStillWorks) {
 TEST_F(SearchWithTTTest, MateInTwoStillWorks) {
     Board board("7k/8/4KP2/5PQP/6P1/8/8/8 w - - 0 1");
 
-    // Play until mate
-    for (int i = 0; i < 10; i++) {
-        auto moves = Generator::generateLegalMoves(board);
-        if (moves.empty()) break;
+    Move w1 = search.findBestMove(board, 4);
+    board.makeMove(w1, false);
 
-        Move best = search.findBestMove(board, 4);
-        board.makeMove(best, false);
-    }
+    Move b1 = search.findBestMove(board, 3);
+    board.makeMove(b1, false);
 
-    auto finalMoves = Generator::generateLegalMoves(board);
-    EXPECT_TRUE(finalMoves.empty());
+    Move w2 = search.findBestMove(board, 2);
+    board.makeMove(w2, false);
+
+    auto moves = getLegalMoves(board);
+    EXPECT_TRUE(moves.empty());
     EXPECT_TRUE(board.isChecked(Color::Black));
 }
 

@@ -4,6 +4,7 @@
 #include "board/board.h"
 #include "search/search.h"
 #include "search/zobrist.h"
+#include "profiler.h"
 
 void uciLoop() {
     Board board;
@@ -49,43 +50,14 @@ void uciLoop() {
             }
         }
         else if (cmd == "go") {
-            int maxDepth = 10;
-            int moveTime = 0;
+            int depth = 5;
             std::string token;
-
             while (ss >> token) {
-                if (token == "depth") ss >> maxDepth;
-                else if (token == "movetime") ss >> moveTime;
+                if (token == "depth") ss >> depth;
             }
 
-            Move bestMove;
-            auto searchStart = std::chrono::high_resolution_clock::now();
-            for (int depth = 1; depth <= maxDepth; depth++) {
-                auto depthStart = std::chrono::high_resolution_clock::now();
-
-                bestMove = search.findBestMove(board, depth);
-
-                auto depthEnd = std::chrono::high_resolution_clock::now();
-                auto depthTime = std::chrono::duration_cast<std::chrono::milliseconds>(depthEnd - depthStart).count();
-                auto totalTime = std::chrono::duration_cast<std::chrono::milliseconds>(depthEnd - searchStart).count();
-
-                std::cout << "info depth " << depth
-                          << " time " << totalTime
-                          << " pv " << Board::toUCI(bestMove)
-                          << std::endl;
-
-                if (moveTime > 0 && totalTime >= moveTime) {
-                    std::cerr << "Time limit reached at depth " << depth << std::endl;
-                    break;
-                }
-
-                if (depthTime > 8000) {
-                    std::cerr << "Depth " << depth << " took " << depthTime << "ms, stopping" << std::endl;
-                    break;
-                }
-            }
-
-            std::cout << "bestmove " << Board::toUCI(bestMove) << "\n";
+            Move best = search.findBestMove(board, depth);
+            std::cout << "bestmove " << Board::toUCI(best) << "\n";
         }
         else if (cmd == "bench") {
             Board benchBoard;
@@ -95,7 +67,9 @@ void uciLoop() {
             for (int depth = 1; depth <= 7; depth++) {
 
                 auto depthStart = std::chrono::high_resolution_clock::now();
+                Profiler::reset();
                 Move best = search.findBestMove(benchBoard, depth);
+                Profiler::print();
                 auto depthEnd = std::chrono::high_resolution_clock::now();
                 auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(depthEnd - depthStart).count();
 

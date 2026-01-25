@@ -16,9 +16,12 @@ public:
     static int evaluate(const Board& board);
 private:
     TranspositionTable tt;
+    int currentPST[6][64];  // [pieceKind][square]
+    double lastPhase = -1;
     int alphaBeta(Board& board, int depth, int ply, int alpha, int beta);
     static int computePhase(const Board& board);
     static int mvvLva(const Move& move, const Board& board);
     static void orderMoves(std::vector<Move>& moves, const Board& board);
-    static int quiescence(Board& board, int alpha, int beta, int qDepth = 0);
+    int quiescence(Board& board, int alpha, int beta, int qDepth = 0);
+    void updatePST(double phase);
 };

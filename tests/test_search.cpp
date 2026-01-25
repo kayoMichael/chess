@@ -10,6 +10,22 @@ protected:
     void SetUp() override {
         Zobrist::init();
     }
+
+    static std::vector<Move> getLegalMoves(Board& board) {
+        std::vector<Move> legal;
+        Color side = board.getColor();
+
+        auto moves = Generator::generatePseudoMoves(board);
+        for (const auto& m : moves) {
+            MoveUndo undo = board.makeMove(m, false);
+            if (!board.isChecked(side)) {
+                legal.push_back(m);
+            }
+            board.undoMove(undo);
+        }
+        return legal;
+    }
+
 };
 
 TEST_F(SearchTest, WhiteMateInOne) {
@@ -17,7 +33,7 @@ TEST_F(SearchTest, WhiteMateInOne) {
     Move best = search.findBestMove(board, 2);
 
     board.makeMove(best, false);
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
     EXPECT_TRUE(moves.empty());
     EXPECT_TRUE(board.isChecked(Color::Black));
 }
@@ -27,7 +43,7 @@ TEST_F(SearchTest, BlackMateInOne) {
     Move best = search.findBestMove(board, 2);
 
     board.makeMove(best, false);
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
     EXPECT_TRUE(moves.empty());
     EXPECT_TRUE(board.isChecked(Color::White));
 }
@@ -76,7 +92,7 @@ TEST_F(SearchTest, WhiteMateInTwo) {
     Move whiteMate = search.findBestMove(board, 2);
     board.makeMove(whiteMate, false);
 
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
 
     EXPECT_TRUE(moves.empty());
     EXPECT_TRUE(board.isChecked(Color::Black));
@@ -87,7 +103,7 @@ TEST_F(SearchTest, WhiteAvoidsStalemate) {
     Move best = search.findBestMove(board, 4);
 
     board.makeMove(best, false);
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
     bool isStalemate = moves.empty() && !board.isChecked(Color::Black);
     EXPECT_FALSE(isStalemate);
 }

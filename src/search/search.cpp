@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <ranges>
 
 
@@ -16,16 +17,25 @@ Move Search::findBestMove(Board& board, const int depth) {
     int alpha = -INF;
     int beta = INF;
     rootDepth = depth;
-    const std::vector<Move> moves = Generator::generateLegalMoves(board);
+    const std::vector<Move> moves = Generator::generatePseudoMoves(board);
+    const double phase = computePhase(board) / static_cast<double>(MAX_PHASE);
+    updatePST(phase);
+    bool foundLegal = false;
 
     Move bestMove;
-    Color side = board.getColor();
+    const Color side = board.getColor();
 
     if (side == Color::White) {
         int bestScore = -INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
+            if (board.isChecked(side)) {
+                board.undoMove(undo);
+                continue;
+            }
+            foundLegal = true;
             int score = alphaBeta(board, depth - 1, 1, alpha, beta);
+            std::cout << Board::toUCI(move) << " score=" << score << "\n";
             board.undoMove(undo);
             if (score > bestScore) {
                 bestScore = score;
@@ -38,7 +48,13 @@ Move Search::findBestMove(Board& board, const int depth) {
         int bestScore = INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
+            if (board.isChecked(side)) {
+                board.undoMove(undo);
+                continue;
+            }
+            foundLegal = true;
             int score = alphaBeta(board, depth - 1, 1, alpha, beta);
+            std::cout << Board::toUCI(move) << " score=" << score << "\n";
             board.undoMove(undo);
             if (score < bestScore) {
                 bestScore = score;
@@ -49,51 +65,76 @@ Move Search::findBestMove(Board& board, const int depth) {
         }
     }
 
+    if (!foundLegal) {
+        return Move{};
+    }
+
     return bestMove;
 }
 
 int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
     const int originalAlpha = alpha;
     const int originalBeta = beta;
+    bool foundLegal = false;
+
+    Move ttMove;
+    bool hasTTMove = false;
 
     if (depth == 0) { // Don't stop if the board is still violent.
         return quiescence(board, alpha, beta);
     }
-
     TTEntry* entry = tt.probe(board.getHash());
-    if (entry && entry->depth >= depth) {
-        if (entry->flag == EXACT) return entry->score;
-        if (entry->flag == LOWER_BOUND) alpha = std::max(alpha, entry->score);
-        if (entry->flag == UPPER_BOUND) beta  = std::min(beta, entry->score);
-        if (alpha >= beta) return entry->score; // or alpha; see note below
-    }
+    if (entry) {
+        ttMove = entry->bestMove;
+        hasTTMove = true;
 
-    std::vector<Move> moves = Generator::generateLegalMoves(board);
+        if (entry->depth >= depth) {
+            if (entry->flag == EXACT) return entry->score;
+            if (entry->flag == LOWER_BOUND) alpha = std::max(alpha, entry->score);
+            if (entry->flag == UPPER_BOUND) beta = std::min(beta, entry->score);
+            if (alpha >= beta) return alpha;
+        }
+    };
+    std::vector<Move> moves = Generator::generatePseudoMoves(board);
     orderMoves(moves, board);
-    const Color side = board.getColor();
-    if (moves.empty() && board.isChecked(side)) {
-        // Checkmate - side to move loses
-        // White checkmated = negative (good for black)
-        // Black checkmated = positive (good for white)
-        if (side == Color::Black) return MATE - ply;
-        return -MATE + ply;
-    } else if (moves.empty()) {
-        //stalemate
-        return 0;
+    if (hasTTMove) {
+        for (size_t i = 0; i < moves.size(); i++) {
+            if (moves[i].current.r == ttMove.current.r &&
+                moves[i].current.c == ttMove.current.c &&
+                moves[i].destination.r == ttMove.destination.r &&
+                moves[i].destination.c == ttMove.destination.c) {
+                std::swap(moves[0], moves[i]);
+                break;
+                }
+        }
     }
-
+    const Color side = board.getColor();
     int bestScore;
+    Move bestMove;
     if (side == Color::White) {
         bestScore = -INF;
         for (auto& move : moves) {
             MoveUndo undo = board.makeMove(move, false);
-            bool inCheck = board.isChecked(board.getColor());
-            int newDepth = depth - 1 + (inCheck ? 1 : 0); // Extend if check
-            int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
+            if (board.isChecked(side)) {
+                board.undoMove(undo);
+                continue;
+            }
+            foundLegal = true;
+            int score = alphaBeta(board, depth - 1, ply + 1, alpha, beta);
             board.undoMove(undo);
             alpha = std::max(alpha, score);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;  // Track best move
+            }
             bestScore = std::max(bestScore, score);
             if (beta <= alpha) break;
+        }
+        if (!foundLegal) {
+            if (board.isChecked(side)) {
+                return -MATE + ply;
+            }
+            return 0;
         }
 
         // White is maximizing
@@ -105,19 +146,34 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
         } else {
            flag = EXACT;
         }
-        tt.store(board.getHash(), bestScore, depth, flag);
+        tt.store(board.getHash(), bestScore, depth, flag, bestMove);
     } else {
         bestScore = INF;
         for (auto& move : moves) {
-            MoveUndo undo = board.makeMove(move,false);
-            bool inCheck = board.isChecked(board.getColor());
-            int newDepth = depth - 1 + (inCheck ? 1 : 0); // Extend if check
-            int score = alphaBeta(board, newDepth, ply + 1, alpha, beta);
+            MoveUndo undo = board.makeMove(move, false);
+            if (board.isChecked(side)) {
+                board.undoMove(undo);
+                continue;
+            }
+            foundLegal = true;
+
+            int score = alphaBeta(board, depth - 1, ply + 1, alpha, beta);
             board.undoMove(undo);
-            bestScore = std::min(bestScore, score);
+
+            if (score < bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
             beta = std::min(beta, score);
             if (beta <= alpha) break;
         }
+        if (!foundLegal) {
+            if (board.isChecked(side)) {
+                return MATE + ply;
+            }
+            return 0;
+        }
+
         // Black is minimizing
         uint8_t flag;
         if (bestScore >= originalBeta) {
@@ -127,7 +183,7 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
         } else {
             flag = EXACT;
         }
-        tt.store(board.getHash(), bestScore, depth, flag);
+        tt.store(board.getHash(), bestScore, depth, flag, bestMove);
     }
     return bestScore;
 }
@@ -135,26 +191,35 @@ int Search::alphaBeta(Board &board, int depth, int ply, int alpha, int beta) {
 int Search::quiescence(Board& board, int alpha, int beta, int qDepth) {
     int stand_pat = evaluate(board);
     Color side = board.getColor();
-
     if (qDepth >= 8) return stand_pat;
 
     if (side == Color::White) {
         if (stand_pat >= beta) return beta;
+
+        int delta = 900;  // Queen value - biggest possible gain
+        if (stand_pat + delta < alpha) return alpha;
+
         if (stand_pat > alpha) alpha = stand_pat;
     } else {
         if (stand_pat <= alpha) return alpha;
+
+        int delta = 900;
+        if (stand_pat - delta > beta) return beta;
+
         if (stand_pat < beta) beta = stand_pat;
     }
-    std::vector<Move> moves = Generator::generateLegalMoves(board);
-    orderMoves(moves, board);
+    std::vector<Move> caps;
+    caps = Generator::generateCaptures(board);
+    orderMoves(caps, board);
 
-    int captureCount = 0;
-    for (const Move& move : moves) {
+    for (const Move& move : caps) {
         if (board.at(move.destination.r, move.destination.c).kind == PieceKind::None)
             continue;
-        captureCount++;
-
         MoveUndo undo = board.makeMove(move, false);
+        if (board.isChecked(side)) {
+            board.undoMove(undo);
+            continue;
+        }
         int score = quiescence(board, alpha, beta, qDepth + 1);
         board.undoMove(undo);
 
@@ -200,9 +265,24 @@ int Search::mvvLva(const Move& move, const Board& board) {
 }
 
 void Search::orderMoves(std::vector<Move>& moves, const Board& board) {
-    std::ranges::sort(moves, [&](const Move& a, const Move& b) {
-        return mvvLva(a, board) > mvvLva(b, board);
+    std::vector<int> score(moves.size());
+
+    for (size_t i = 0; i < moves.size(); i++) {
+        score[i] = mvvLva(moves[i], board);
+    }
+
+    std::vector<size_t> idx(moves.size());
+    std::iota(idx.begin(), idx.end(), 0);
+
+    std::sort(idx.begin(), idx.end(), [&](size_t i, size_t j) {
+        return score[i] > score[j];
     });
+
+    std::vector<Move> ordered;
+    ordered.reserve(moves.size());
+    for (auto i : idx) ordered.push_back(moves[i]);
+
+    moves.swap(ordered);
 }
 
 int Search::evaluate(const Board &board) {
@@ -256,6 +336,35 @@ int Search::evaluate(const Board &board) {
                         bishopPST_EARLY[pst_row][pst_col] * phase +
                         bishopPST_LATE[pst_row][pst_col] * (1.0 - phase)
                     ));
+                    if (color == Color::White) {
+                        if (r == 5 && c == 3) { // d3
+                            Piece dPawn = board.at(6, 3);  // d2
+                            if (dPawn.kind == PieceKind::Pawn && dPawn.color == Color::White) {
+                                pstScore -= 30;  // Penalty for blocking d-pawn
+                            }
+                        } else if (r == 5 && c == 4) { // e3
+                            Piece dPawn = board.at(6, 4);  // e2
+                            if (dPawn.kind == PieceKind::Pawn && dPawn.color == Color::White) {
+                                pstScore -= 30;  // Penalty for blocking e-pawn
+                            }
+                        }
+                    } else {
+                        // Black bishop on d6 blocking d7 pawn
+                        if (r == 2 && c == 3) {  // d6
+                            Piece dPawn = board.at(1, 3);  // d7
+                            if (dPawn.kind == PieceKind::Pawn && dPawn.color == Color::Black) {
+                                pstScore -= 30;  // Penalty (will become +30 for white after * sign)
+                            }
+                        }
+                        // Black bishop on e6 blocking e7 pawn
+                        else if (r == 2 && c == 4) {  // e6
+                            Piece ePawn = board.at(1, 4);  // e7
+                            if (ePawn.kind == PieceKind::Pawn && ePawn.color == Color::Black) {
+                                pstScore -= 30;
+                            }
+                        }
+                    }
+
                     const int left_dig = allowedSquares(r, c, dr, -1);
                     const int right_dig = allowedSquares(r, c, dr, 1);
                     const int left_back_dig = allowedSquares(r, c, -dr, -1);
@@ -285,13 +394,72 @@ int Search::evaluate(const Board &board) {
                     ));
                     break;
 
-                case PieceKind::King:
+                case PieceKind::King: {
                     pstScore = static_cast<int>(std::round(
                         kingPST_EARLY[pst_row][pst_col] * phase +
                         kingPST_LATE[pst_row][pst_col] * (1.0 - phase)
                     ));
 
+                    // King safety - only in early/mid game (phase > 0.3)
+                    if (phase > 0.3) {
+                        if (color == Color::White) {
+                            // Kingside castled (king on g1 or h1)
+                            if (r == 7 && (c == 6 || c == 7)) {
+                                int shield = 0;
+                                // Check pawns on f2, g2, h2 xor h3
+                                if (board.at(6, 5).kind == PieceKind::Pawn && board.at(6, 5).color == Color::White) shield++;
+                                if (board.at(6, 6).kind == PieceKind::Pawn && board.at(6, 6).color == Color::White) shield++;
+                                if ((board.at(6, 7).kind == PieceKind::Pawn && board.at(6, 7).color == Color::White) ^
+                                    (board.at(5, 7).kind == PieceKind::Pawn && board.at(5, 7).color == Color::White)) shield++;
+
+                                // Bonus for intact shield, penalty for missing pawns
+                                pstScore += (shield - 3) * 15;  // -45 if no pawns, 0 if all 3
+
+                                // Extra penalty for open file in front of king
+                                if (board.at(6, 6).color != Color::White && board.at(5, 6).color != Color::White) {
+                                    pstScore -= 25;  // Open g-file is dangerous
+                                }
+                            }
+                            // Queenside castled (king on c1 or b1)
+                            else if (r == 7 && (c == 1 || c == 2)) {
+                                int shield = 0;
+                                // Check pawns on a2, b2, c2
+                                if (board.at(6, 0).kind == PieceKind::Pawn && board.at(6, 0).color == Color::White) shield++;
+                                if (board.at(6, 1).kind == PieceKind::Pawn && board.at(6, 1).color == Color::White) shield++;
+                                if (board.at(6, 2).kind == PieceKind::Pawn && board.at(6, 2).color == Color::White) shield++;
+
+                                pstScore += (shield - 3) * 15;
+                            }
+                        } else {
+                            // Black kingside castled (king on g8 or h8)
+                            if (r == 0 && (c == 6 || c == 7)) {
+                                int shield = 0;
+                                // Check pawns on f7, g7, h7 xor h6
+                                if (board.at(1, 5).kind == PieceKind::Pawn && board.at(1, 5).color == Color::Black) shield++;
+                                if (board.at(1, 6).kind == PieceKind::Pawn && board.at(1, 6).color == Color::Black) shield++;
+                                if ((board.at(1, 7).kind == PieceKind::Pawn && board.at(1, 7).color == Color::Black) ^
+                                    (board.at(2, 7).kind == PieceKind::Pawn && board.at(2, 7).color == Color::Black)) shield++;
+
+                                pstScore += (shield - 3) * 15;
+
+                                // Open g-file penalty
+                                if (board.at(1, 6).color != Color::Black && board.at(2, 6).color != Color::Black) {
+                                    pstScore -= 25;
+                                }
+                            }
+                            // Black queenside castled (king on c8 or b8)
+                            else if (r == 0 && (c == 1 || c == 2)) {
+                                int shield = 0;
+                                if (board.at(1, 0).kind == PieceKind::Pawn && board.at(1, 0).color == Color::Black) shield++;
+                                if (board.at(1, 1).kind == PieceKind::Pawn && board.at(1, 1).color == Color::Black) shield++;
+                                if (board.at(1, 2).kind == PieceKind::Pawn && board.at(1, 2).color == Color::Black) shield++;
+
+                                pstScore += (shield - 3) * 15;
+                            }
+                        }
+                    }
                     break;
+                }
 
                 case PieceKind::Pawn: {
                     pstScore = pawnPST[pst_row][pst_col];
@@ -314,5 +482,22 @@ int Search::evaluate(const Board &board) {
     }
 
     return score;
+}
+
+void Search::updatePST(const double phase) {
+    if (std::abs(phase - lastPhase) < 0.01) return;  // Skip if phase hasn't changed much
+    lastPhase = phase;
+
+    for (int sq = 0; sq < 64; sq++) {
+        int r = sq / 8;
+        int c = sq % 8;
+
+        currentPST[0][sq] = static_cast<int>(knightPST_EARLY[r][c] * phase + knightPST_LATE[r][c] * (1.0 - phase));
+        currentPST[1][sq] = static_cast<int>(bishopPST_EARLY[r][c] * phase + bishopPST_LATE[r][c] * (1.0 - phase));
+        currentPST[2][sq] = static_cast<int>(rookPST_EARLY[r][c] * phase + rookPST_LATE[r][c] * (1.0 - phase));
+        currentPST[3][sq] = static_cast<int>(queenPST_EARLY[r][c] * phase + queenPST_LATE[r][c] * (1.0 - phase));
+        currentPST[4][sq] = static_cast<int>(kingPST_EARLY[r][c] * phase + kingPST_LATE[r][c] * (1.0 - phase));
+        currentPST[5][sq] = pawnPST[r][c];
+    }
 }
 

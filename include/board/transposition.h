@@ -8,6 +8,7 @@ struct TTEntry {
     int score = 0;
     int depth = -999;
     uint8_t flag = 0;
+    Move bestMove;
 };
 
 enum TTFlag { EXACT, LOWER_BOUND, UPPER_BOUND };
@@ -38,6 +39,7 @@ public:
             entry.score = 0;
             entry.depth = -999;
             entry.flag = 0;
+            entry.bestMove = Move();
         }
     }
 
@@ -51,10 +53,10 @@ public:
         return nullptr;
     }
 
-    void store(uint64_t hash, int score, int depth, uint8_t flag) {
+    void store(uint64_t hash, int score, int depth, uint8_t flag, const Move& bestMove) {
         TTEntry& entry = table[hash % size];
         if (depth >= entry.depth) {
-            entry = {hash, score, depth, flag};
+            entry = {hash, score, depth, flag, bestMove};
             stores++;
         }
     }
