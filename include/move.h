@@ -1,6 +1,7 @@
 #pragma once
 #include "piece_type.h"
 #include <optional>
+#include <cstdint>
 
 struct Square {
     int r;

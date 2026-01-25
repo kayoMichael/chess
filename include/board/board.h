@@ -3,6 +3,7 @@
 #include <string>
 #include <optional>
 #include <vector>
+#include <cstdint>
 
 #include "move.h"
 #include "piece_type.h"

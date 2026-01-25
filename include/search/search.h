@@ -2,6 +2,8 @@
 #include "board/board.h"
 #include "move.h"
 #include "board/transposition.h"
+#include <cstdint>
+
 
 class Search {
 public:

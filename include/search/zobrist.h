@@ -2,6 +2,8 @@
 
 #include <random>
 #include "pieces.h"
+#include <cstdint>
+
 
 class Zobrist {
 public:

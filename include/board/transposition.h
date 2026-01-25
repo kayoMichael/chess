@@ -2,6 +2,7 @@
 
 #include <random>
 #include <vector>
+#include <cstdint>
 
 struct TTEntry {
     uint64_t hash = 0;
