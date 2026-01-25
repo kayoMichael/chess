@@ -1,7 +1,10 @@
 #include <iostream>
 #include <sstream>
+#include <chrono>
 #include "board/board.h"
 #include "search/search.h"
+#include "search/zobrist.h"
+#include "profiler.h"
 
 void uciLoop() {
     Board board;
@@ -23,6 +26,7 @@ void uciLoop() {
         }
         else if (cmd == "ucinewgame") {
             board = Board();
+            search.clearTT();
         }
         else if (cmd == "position") {
             std::string token;
@@ -46,8 +50,7 @@ void uciLoop() {
             }
         }
         else if (cmd == "go") {
-            // fixed depth 7 if none given.
-            int depth = 7;
+            int depth = 5;
             std::string token;
             while (ss >> token) {
                 if (token == "depth") ss >> depth;
@@ -55,6 +58,30 @@ void uciLoop() {
 
             Move best = search.findBestMove(board, depth);
             std::cout << "bestmove " << Board::toUCI(best) << "\n";
+        }
+        else if (cmd == "bench") {
+            Board benchBoard;
+            search.clearTT();
+            search.resetTTStats();
+
+            for (int depth = 1; depth <= 7; depth++) {
+
+                auto depthStart = std::chrono::high_resolution_clock::now();
+                Profiler::reset();
+                Move best = search.findBestMove(benchBoard, depth);
+                Profiler::print();
+                auto depthEnd = std::chrono::high_resolution_clock::now();
+                auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(depthEnd - depthStart).count();
+
+                auto [hits, misses, stores] = search.getTTStats();
+                double hitRate = (hits + misses) > 0 ? (100.0 * hits / (hits + misses)) : 0;
+
+                std::cout << "Depth " << depth << ": " << ms << "ms"
+                          << ", best=" << Board::toUCI(best)
+                          << ", TT hits=" << hits << " misses=" << misses
+                          << " (" << hitRate << "%)"
+                          << ", stores=" << stores << "\n";
+            }
         }
         else if (cmd == "quit") {
             break;
@@ -65,6 +92,7 @@ void uciLoop() {
 }
 
 int main() {
+    Zobrist::init();
     uciLoop();
     return 0;
 }

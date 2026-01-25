@@ -3,6 +3,7 @@
 #include <string>
 #include <optional>
 #include <vector>
+#include <cstdint>
 
 #include "move.h"
 #include "piece_type.h"
@@ -10,10 +11,13 @@
 class Board {
 public:
     Board();
+    uint64_t hash = 0;
     explicit Board(const std::string& fen);
     void init();
     void print() const;
     void loadFEN(const std::string& fen);
+    [[nodiscard]] uint64_t getHash() const { return hash; }
+    void computeHash();
     [[nodiscard]] std::string toFEN() const;
     bool whiteKingMoved = false;
     bool blackKingMoved = false;

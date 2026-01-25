@@ -2,10 +2,30 @@
 #include "board/board.h"
 #include "search/search.h"
 #include "generator/generator.h"
+#include "search/zobrist.h"
 
 class SearchTest : public ::testing::Test {
 protected:
     Search search;
+    void SetUp() override {
+        Zobrist::init();
+    }
+
+    static std::vector<Move> getLegalMoves(Board& board) {
+        std::vector<Move> legal;
+        Color side = board.getColor();
+
+        auto moves = Generator::generatePseudoMoves(board);
+        for (const auto& m : moves) {
+            MoveUndo undo = board.makeMove(m, false);
+            if (!board.isChecked(side)) {
+                legal.push_back(m);
+            }
+            board.undoMove(undo);
+        }
+        return legal;
+    }
+
 };
 
 TEST_F(SearchTest, WhiteMateInOne) {
@@ -13,7 +33,7 @@ TEST_F(SearchTest, WhiteMateInOne) {
     Move best = search.findBestMove(board, 2);
 
     board.makeMove(best, false);
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
     EXPECT_TRUE(moves.empty());
     EXPECT_TRUE(board.isChecked(Color::Black));
 }
@@ -23,14 +43,14 @@ TEST_F(SearchTest, BlackMateInOne) {
     Move best = search.findBestMove(board, 2);
 
     board.makeMove(best, false);
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
     EXPECT_TRUE(moves.empty());
     EXPECT_TRUE(board.isChecked(Color::White));
 }
 
 TEST_F(SearchTest, WhiteCapturesHangingQueen) {
     Board board("8/6B1/8/8/3q4/8/8/4K2k w - - 0 1");
-    Move best = search.findBestMove(board, 2);
+    Move best = search.findBestMove(board, 4);
 
     EXPECT_EQ(best.destination.r, 4);
     EXPECT_EQ(best.destination.c, 3);
@@ -72,7 +92,7 @@ TEST_F(SearchTest, WhiteMateInTwo) {
     Move whiteMate = search.findBestMove(board, 2);
     board.makeMove(whiteMate, false);
 
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
 
     EXPECT_TRUE(moves.empty());
     EXPECT_TRUE(board.isChecked(Color::Black));
@@ -83,7 +103,7 @@ TEST_F(SearchTest, WhiteAvoidsStalemate) {
     Move best = search.findBestMove(board, 4);
 
     board.makeMove(best, false);
-    auto moves = Generator::generateLegalMoves(board);
+    auto moves = getLegalMoves(board);
     bool isStalemate = moves.empty() && !board.isChecked(Color::Black);
     EXPECT_FALSE(isStalemate);
 }

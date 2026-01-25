@@ -1,6 +1,7 @@
 #pragma once
 #include "piece_type.h"
 #include <optional>
+#include <cstdint>
 
 struct Square {
     int r;
@@ -27,6 +28,7 @@ struct MoveUndo {
     Piece captured{};
     Piece movedPiece{};
     std::optional<Square> enPassantTarget = std::nullopt;
+    uint64_t prevHash{};
 
     bool whiteKingMoved{};
     bool blackKingMoved{};
