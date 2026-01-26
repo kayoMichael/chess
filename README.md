@@ -3,7 +3,9 @@
 A Light Weight UCI-compatible chess engine written in C++, capable of playing at approximately ~1800 rating.
 
 ## Demo
-https://github.com/user-attachments/assets/00e59224-90a1-41a8-8675-429a33e16305
+
+https://github.com/user-attachments/assets/06cc8cb4-9f01-47b9-9387-5fd86aa0b25d
+
 
 ## Features
 
